@@ -1,0 +1,8 @@
+{:deps true
+ :builds {:app {:target :browser
+                :output-dir "resources/public/js"
+                :asset-path "/js"
+                :modules {:main {:entries [toepen.client.core]}}}}
+
+
+ :socket-repl {:port 60606}}
