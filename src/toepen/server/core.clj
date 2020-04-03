@@ -1,20 +1,13 @@
 (ns toepen.server.core
   (:require [org.httpkit.server :as http]
             [reitit.ring :as ring]
-            [ring.util.response :as resp]
-            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
-            [ring.middleware.params :refer [wrap-params]]
             [taoensso.sente :as sente]
-            [taoensso.sente.server-adapters.http-kit :refer (get-sch-adapter)]))
-
-; TODO Add anti-forgery-middleware
-; TODO Tweak the middlware until it works
-
+            [taoensso.sente.server-adapters.http-kit :refer (get-sch-adapter)]
+            [ring.middleware.defaults :refer [wrap-defaults]]
+            [hiccup.page :as page]))
 
 (defonce server (atom nil))
-(def channel (sente/make-channel-socket! (get-sch-adapter) {}))
-
-(def connected-uids (:connected-uids channel))
+(def socket (sente/make-channel-socket! (get-sch-adapter) {}))
 
 (defn stop-server
   []
@@ -25,27 +18,53 @@
     (reset! server nil)))
 
 (defn index
-  [_]
-  (resp/resource-response "index.html" {:root "public"}))
+  [req]
+  (let [csrf-token (:anti-forgery-token req)
+        html (page/html5
+               {:lang "en"}
+               [:head
+                  [:meta {:charset "utf-8"}]
+                  [:title "Toepen 4 evah!"]
+                  (page/include-css "style.css")]
+               [:body
+                [:div {:id "sente-csrf-token"
+                       :data-csrf-token csrf-token}]
+                [:div {:id "app"}]
+                (page/include-js "js/main.js")])]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body html}))
+
+(def mw-config
+  {:params {:urlencoded true
+            :multipart true
+            :nested true
+            :keywordize true}
+   :cookies true
+   :session {:flash false
+             :cookie-attrs {:http-only true
+                            :same-site :strict}}
+   :security {:anti-forgery true
+              :xss-protection {:enable? true
+                               :mode :block}
+              :frame-options :sameorigin
+              :content-type-options :nosniff}
+   :static {:resources "public"}
+   :responses {:not-modified-responses true
+               :absolute-redirects true
+               :content-types true
+               :default-charset "utf-8"}})
 
 (def handler
   (ring/ring-handler
     (ring/router
-     [["/chsk" {:get {:middleware [[wrap-keyword-params] [wrap-params]]
-                      :handler (:ajax-get-or-ws-handshake-fn channel)}
-                :post {:middleware [[wrap-keyword-params] [wrap-params]]
-                       :handler (:ajax-post-fn channel)}}]
-      ["/" index]
-      ["/:game" index]]
+     [["/ws" {:get (:ajax-get-or-ws-handshake-fn socket)
+              :post (:ajax-post-fn socket)}]
+      ["/" index]]
      {:conflicts nil})
     (ring/routes
-      (ring/create-resource-handler {:path "/"})
-      (ring/create-default-handler))))
-
-(handler {:request-method :get :uri "/chsk?udt=1585853173870&client-id=06aba6cd-58f0-4632-b91e-e2525c09508c&handshake?=true"})
-
-(handler {:request-method :get :uri "/ping"})
-
+      (ring/create-default-handler))
+    {:middleware [[wrap-defaults mw-config]]}))
 
 (comment
   (do

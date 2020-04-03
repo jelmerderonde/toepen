@@ -7,7 +7,9 @@
         metosin/reitit-core                {:mvn/version "0.4.2"}
         metosin/reitit-ring                {:mvn/version "0.4.2"}
         metosin/reitit-middleware          {:mvn/version "0.4.2"}
-        metosin/reitit-frontend            {:mvn/version "0.4.2"}}
+        metosin/reitit-frontend            {:mvn/version "0.4.2"}
+
+        ring/ring-defaults                 {:mvn/version "0.3.2"}}
 
  :aliases {:dev         {:extra-deps {binaryage/devtools   {:mvn/version "1.0.0"}
                                       metosin/reitit-dev   {:mvn/version "0.4.2"}}}

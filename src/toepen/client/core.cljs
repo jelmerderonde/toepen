@@ -3,7 +3,16 @@
   (:require [cljs.core.async :as async :refer (<! >! put! chan)]
             [taoensso.sente  :as sente :refer (cb-success?)]))
 
-(def channel (sente/make-channel-socket! "/chsk" {:type :auto}))
+(def ?csrf-token
+  (when-let [el (.getElementById js/document "sente-csrf-token")]
+    (.getAttribute el "data-csrf-token")))
+
+(def socket (sente/make-channel-socket! "/ws" ?csrf-token {:type :auto}))
+
+(go-loop []
+  (let [{:keys [event id ?data send-fn]} (<! (:ch-recv socket))]
+    (js/console.log event)
+    (recur)))
 
 (comment
   (let [{:keys [chsk ch-recv send-fn state]}]
