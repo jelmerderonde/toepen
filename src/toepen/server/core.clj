@@ -1,13 +1,12 @@
 (ns toepen.server.core
   (:require [org.httpkit.server :as http]
             [reitit.ring :as ring]
-            [taoensso.sente :as sente]
-            [taoensso.sente.server-adapters.http-kit :refer (get-sch-adapter)]
             [ring.middleware.defaults :refer [wrap-defaults]]
-            [hiccup.page :as page]))
+            [hiccup.page :as page]
+            [reitit.ring.middleware.dev]
+            [toepen.server.ws :as ws]))
 
 (defonce server (atom nil))
-(def socket (sente/make-channel-socket! (get-sch-adapter) {}))
 
 (defn stop-server
   []
@@ -42,7 +41,7 @@
             :keywordize true}
    :cookies true
    :session {:flash false
-             :cookie-attrs {:http-only true
+             :cookie-attrs {:http-only false ; TODO add secure option in production
                             :same-site :strict}}
    :security {:anti-forgery true
               :xss-protection {:enable? true
@@ -58,10 +57,11 @@
 (def handler
   (ring/ring-handler
     (ring/router
-     [["/ws" {:get (:ajax-get-or-ws-handshake-fn socket)
-              :post (:ajax-post-fn socket)}]
+     [["/ws" {:get ws/get-handler
+              :post ws/post-handler}]
       ["/" index]]
-     {:conflicts nil})
+     {:conflicts nil
+      :reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes
       (ring/create-default-handler))
     {:middleware [[wrap-defaults mw-config]]}))
@@ -71,6 +71,8 @@
     (stop-server)
     (reset! server (http/run-server #'handler {:port 8080})))
 
+  (doseq [uid (:any @ws/connected)]
+    (ws/send! uid [:event/test true]))
   nil)
 
 (defn -main
