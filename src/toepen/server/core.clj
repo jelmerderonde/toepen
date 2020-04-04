@@ -4,7 +4,8 @@
             [ring.middleware.defaults :refer [wrap-defaults]]
             [hiccup.page :as page]
             [reitit.ring.middleware.dev]
-            [toepen.server.ws :as ws]))
+            [toepen.server.ws :as ws]
+            [toepen.server.state :as state]))
 
 (defonce server (atom nil))
 
@@ -67,9 +68,13 @@
     {:middleware [[wrap-defaults mw-config]]}))
 
 (comment
+  #_ (user/rebl)
+
   (do
     (stop-server)
-    (reset! server (http/run-server #'handler {:port 8080})))
+    (state/stop-watch!)
+    (reset! server (http/run-server #'handler {:port 8080}))
+    (state/start-watch!))
 
   (doseq [uid (:any @ws/connected)]
     (ws/send! uid [:event/test true]))

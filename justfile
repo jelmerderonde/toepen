@@ -1,2 +1,2 @@
 repl:
-  clj -A:dev:shadow-cljs watch app
+  clj -A:dev:rebl:shadow-cljs watch app

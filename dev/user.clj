@@ -1,5 +1,6 @@
 (ns user
-  (:require [puget.printer :as puget])
+  (:require [puget.printer :as puget]
+            [cognitect.rebl :as rebl])
   (:import [java.awt.datatransfer StringSelection]))
 
 (defn clipboard
@@ -15,3 +16,7 @@
 
 (def debug-a (atom nil))
 (add-tap #(reset! debug-a %))
+
+(defn rebl
+  []
+  (rebl/ui))
