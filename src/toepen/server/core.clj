@@ -17,6 +17,14 @@
     (@server :timeout 100)
     (reset! server nil)))
 
+(defonce event-handler (atom nil))
+
+(defn stop-event-handler
+  []
+  (when-not (nil? @event-handler)
+    (@event-handler)
+    (reset! event-handler nil)))
+
 (defn index
   [req]
   (let [csrf-token (:anti-forgery-token req)
@@ -61,8 +69,8 @@
      [["/ws" {:get ws/get-handler
               :post ws/post-handler}]
       ["/" index]]
-     {:conflicts nil
-      :reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
+     {:conflicts nil})
+      ;:reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes
       (ring/create-default-handler))
     {:middleware [[wrap-defaults mw-config]]}))
@@ -72,12 +80,12 @@
 
   (do
     (stop-server)
+    (stop-event-handler)
     (state/stop-watch!)
     (reset! server (http/run-server #'handler {:port 8080}))
-    (state/start-watch!))
-
-  (doseq [uid (:any @ws/connected)]
-    (ws/send! uid [:event/test true]))
+    (state/start-watch!)
+    (reset! event-handler (state/start-event-handling!)))
+    
   nil)
 
 (defn -main

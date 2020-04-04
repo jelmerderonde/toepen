@@ -97,14 +97,13 @@
                               [:discarded])))]
     (reduce discard-cards game player-ids)))
 
-(defn next-round
+(defn clean-table
   "Sets up a next round by finishing the
-  current round and dealing new hands."
+  current round and cleaning the table."
   [game]
   (-> game
       (finish-round)
-      (c/move-all-cards [:discarded] [:deck])
-      (deal-cards 4)))
+      (c/move-all-cards [:discarded] [:deck])))
 
 (defn reset-game
   "Resets the game by resetting all the points
@@ -114,7 +113,7 @@
         reset-points (fn reset-points [game player-id]
                       (assoc-in game [:players player-id :points] 0))]
     (-> (reduce reset-points game player-ids)
-        (next-round))))
+        (clean-table))))
 
 (comment
   (-> (new-game)

@@ -3,24 +3,45 @@
   (:require [cljs.core.async :as s :refer [<!]]
             [toepen.client.ws :as ws]
             [reagent.core :as r]
-            [reagent.dom :as rdom]))
+            [reagent.dom :as rdom]
+            [cljs.pprint :as pp]
+            [taoensso.sente :as sente]))
 
 (def state (r/atom {}))
 
-(defmulti handle-ws-event first)
-
-(defmethod handle-ws-event :state/new
-  [[_ new-state]]
-  (reset! state new-state))
-
-(go-loop []
-  (let [{:keys [event]} (<! ws/chan)]
-    (when (= (first event) :chsk/recv)
-      (handle-ws-event (second event)))
-    (recur)))
-
-(defn test-comp
+(defn ^:dev/after-load refresh-state
   []
-  [:div (get @state :text "no text yet")])
+  (js/console.log "requesting state")
+  (ws/send! [:state/request]))
 
-(rdom/render [test-comp] (js/document.getElementById "app"))
+(defmulti handle-msg
+  (fn [{:keys [id ?data]}]
+    (if (= id :chsk/recv)
+      (first ?data)
+      id)))
+
+(defmethod handle-msg :default
+  [msg]
+  ;(js/console.log (with-out-str (pp/pprint msg))))
+  nil)
+
+(defmethod handle-msg :state/new
+  [{:keys [?data]}]
+  (reset! state (second ?data)))
+
+(sente/start-client-chsk-router!
+  ws/chan handle-msg)
+
+(defn root
+  []
+  [:div
+   [:button
+    {:on-click (fn [_] (ws/send! [:game/reset]))}
+    "reset game"]
+   [:button
+     {:on-click (fn [_] (ws/send! [:game/deal]))}
+     "deal cards"]
+   [:pre [:code (with-out-str (pp/pprint @state))]]])
+
+(rdom/render [root] (js/document.getElementById "app"))
+(refresh-state)
