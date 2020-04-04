@@ -11,7 +11,8 @@
 
         ring/ring-defaults                 {:mvn/version "0.3.2"}
 
-        reagent                            {:mvn/version "0.10.0"}}
+        reagent                            {:mvn/version "0.10.0"
+                                            :exclusions [cljsjs/react cljsjs/react-dom]}}
 
  :aliases {:dev         {:extra-deps {binaryage/devtools   {:mvn/version "1.0.0"}
                                       metosin/reitit-dev   {:mvn/version "0.4.2"}}

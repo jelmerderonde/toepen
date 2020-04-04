@@ -33,7 +33,9 @@
                [:head
                   [:meta {:charset "utf-8"}]
                   [:title "Toepen 4 evah!"]
-                  (page/include-css "style.css")]
+                  [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
+                          :rel "stylesheet"}]]
+                  ;(page/include-css "style.css")]
                [:body
                 [:div {:id "sente-csrf-token"
                        :data-csrf-token csrf-token}]
@@ -85,7 +87,7 @@
     (reset! server (http/run-server #'handler {:port 8080}))
     (state/start-watch!)
     (reset! event-handler (state/start-event-handling!)))
-    
+
   nil)
 
 (defn -main
