@@ -32,9 +32,15 @@
   (assoc-in game [:players player-id] (new-player)))
 
 (defn remove-player
-  "Removes a player from the game"
+  "Removes a player from the game and
+  moves their cards to the discarded pile"
   [game player-id]
-  (update game :players dissoc player-id))
+  (if (player-exists? game player-id)
+    (-> game
+        (c/move-all-cards [:players player-id :hand] [:discarded])
+        (c/move-all-cards [:players player-id :table] [:discarded])
+        (update :players dissoc player-id))
+    game))
 
 (defn set-player-name
   "Updates display name of the player"
@@ -110,10 +116,15 @@
   and setting up a next round."
   [game]
   (let [player-ids (player-ids game)
-        reset-points (fn reset-points [game player-id]
-                      (assoc-in game [:players player-id :points] 0))]
-    (-> (reduce reset-points game player-ids)
-        (clean-table))))
+        reset-players (fn reset-players [game player-id]
+                        (-> game
+                            (update-in [:players player-id :hand] c/remove-all-cards)
+                            (update-in [:players player-id :table] c/remove-all-cards)
+                            (assoc-in [:players player-id :points] 0)))]
+    (-> (reduce reset-players game player-ids)
+        (assoc-in [:deck] (c/stack c/toep-cards))
+        (assoc-in [:discarded] (c/stack)))))
+
 
 (comment
   (-> (new-game)

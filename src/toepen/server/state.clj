@@ -43,8 +43,10 @@
 (defmethod handle-msg :chsk/uidport-close
   [{:keys [uid]}]
   (tap> "[server] user disconnected")
-  (if (empty? (:players @state))
-    (reset! state {})
+  (if (= (count (:players @state)) 1)
+    (do
+      (tap> "[server] all users disconnected, clearing game")
+      (reset! state {}))
     (swap! state game/remove-player uid)))
 
 (defmethod handle-msg :game/reset

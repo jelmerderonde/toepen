@@ -25,12 +25,15 @@
   ;(js/console.log (with-out-str (pp/pprint msg))))
   nil)
 
+(defmethod handle-msg :chsk/state
+  [{:keys [?data]}]
+  (let [[_ {:keys [first-open?]}] ?data]
+    (when first-open?
+      (refresh-state))))
+
 (defmethod handle-msg :state/new
   [{:keys [?data]}]
   (reset! state (second ?data)))
-
-(sente/start-client-chsk-router!
-  ws/chan handle-msg)
 
 (defn root
   []
@@ -43,5 +46,6 @@
      "deal cards"]
    [:pre [:code (with-out-str (pp/pprint @state))]]])
 
+(sente/start-client-chsk-router! ws/chan handle-msg)
 (rdom/render [root] (js/document.getElementById "app"))
 (refresh-state)

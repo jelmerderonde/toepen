@@ -35,6 +35,11 @@
   [stack cards]
   (reduce remove-card stack cards))
 
+(defn remove-all-cards
+  "Removes all the cards from a stack"
+  [stack]
+  (assoc stack :cards #{}))
+
 (defn rand-card
   "Picks a random card from a stack, returns
   nil if there are no cards in the stack."
