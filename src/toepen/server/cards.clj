@@ -1,8 +1,8 @@
 (ns toepen.server.cards)
 
 (def toep-cards
-  (let [suits [:heart :club :diamond :spades]
-        cards [:jack :queen :king :ace :7 :8 :9 :10]]
+  (let [suits [:heart :club :diamond :spade]
+        cards [:jack :queen :king :1 :7 :8 :9 :10]]
     (for [s suits
           c cards]
       [s c])))

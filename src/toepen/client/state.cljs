@@ -23,12 +23,13 @@
 
 (defmethod handle-msg :chsk/state
   [{:keys [?data]}]
-  (let [[_ {:keys [first-open?]}] ?data]
+  (let [[_ {:keys [first-open? uid]}] ?data]
     (when first-open?
+      (swap! state assoc :uid uid)
       (refresh-state))))
 
 (defmethod handle-msg :state/new
   [{:keys [?data]}]
-  (reset! state (second ?data)))
+  (swap! state assoc :game (second ?data)))
 
 (sente/start-client-chsk-router! ws/chan handle-msg)

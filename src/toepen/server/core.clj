@@ -34,8 +34,8 @@
                   [:meta {:charset "utf-8"}]
                   [:title "Toepen 4 evah!"]
                   [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
-                          :rel "stylesheet"}]]
-                  ;(page/include-css "style.css")]
+                          :rel "stylesheet"}]
+                  (page/include-css "style.css")]
                [:body
                 [:div {:id "sente-csrf-token"
                        :data-csrf-token csrf-token}]
