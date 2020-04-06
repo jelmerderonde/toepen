@@ -58,7 +58,8 @@
               :xss-protection {:enable? true
                                :mode :block}
               :frame-options :sameorigin
-              :content-type-options :nosniff}
+              :content-type-options :nosniff
+              :ssl-redirect true}
    :static {:resources "public"}
    :responses {:not-modified-responses true
                :absolute-redirects true
