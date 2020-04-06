@@ -77,19 +77,25 @@
       (ring/create-default-handler))
     {:middleware [[wrap-defaults mw-config]]}))
 
+(defn start-server
+  ([port]
+   (stop-server)
+   (stop-event-handler)
+   (state/stop-watch!)
+   (reset! server (http/run-server #'handler {:port port}))
+   (state/start-watch!)
+   (reset! event-handler (state/start-event-handling!)))
+  ([] (start-server 8080)))
+
 (comment
   #_ (user/rebl)
 
-  (do
-    (stop-server)
-    (stop-event-handler)
-    (state/stop-watch!)
-    (reset! server (http/run-server #'handler {:port 8080}))
-    (state/start-watch!)
-    (reset! event-handler (state/start-event-handling!)))
+  (start-server)
 
   nil)
 
 (defn -main
   [& _]
-  (println "Starting toepen..."))
+  (println "Starting toepen...")
+  (let [port (Integer. (System/getenv "PORT"))]
+    (start-server port)))
