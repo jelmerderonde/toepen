@@ -52,22 +52,23 @@
             :keywordize true}
    :cookies true
    :session {:flash false
-             :cookie-attrs {:http-only false ; TODO add secure option in production
+             :cookie-attrs {:http-only false
                             :same-site :strict}}
    :security {:anti-forgery true
               :xss-protection {:enable? true
                                :mode :block}
               :frame-options :sameorigin
-              :content-type-options :nosniff
-              :ssl-redirect true}
-   :proxy true
+              :content-type-options :nosniff}
    :static {:resources "public"}
    :responses {:not-modified-responses true
                :absolute-redirects true
                :content-types true
                :default-charset "utf-8"}})
 
-(def handler
+(merge-with merge {:a 1 :b {:c 2}} {:b {:c 3 :d 4}})
+
+(defn handler
+  [config]
   (ring/ring-handler
     (ring/router
      [["/ws" {:get ws/get-handler
@@ -77,27 +78,35 @@
       ;:reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes
       (ring/create-default-handler))
-    {:middleware [[wrap-defaults mw-config]]}))
+    {:middleware [[wrap-defaults config]]}))
 
 (defn start-server
-  ([port]
-   (stop-server)
-   (stop-event-handler)
-   (state/stop-watch!)
-   (reset! server (http/run-server #'handler {:port port}))
-   (state/start-watch!)
-   (reset! event-handler (state/start-event-handling!)))
-  ([] (start-server 8080)))
+  [{:keys [middleware port]}]
+  (stop-server)
+  (stop-event-handler)
+  (state/stop-watch!)
+  (reset! server (http/run-server (handler middleware) {:port port}))
+  (state/start-watch!)
+  (reset! event-handler (state/start-event-handling!)))
+
 
 (comment
   #_ (user/rebl)
 
-  (start-server)
+  (start-server {:middleware mw-config
+                 :port 8080})
 
   nil)
+
+(def prod-config
+  (let [port (Integer. (or (System/getenv "PORT") 8080))
+        prod-mw {:session {:cookie-attrs {:http-only true}}
+                 :security {:ssl-redirect true}
+                 :proxy true}]
+    {:port port
+     :middleware (merge-with merge mw-config prod-mw)}))
 
 (defn -main
   [& _]
   (println "Starting toepen...")
-  (let [port (Integer. (System/getenv "PORT"))]
-    (start-server port)))
+  (start-server prod-config))
