@@ -3,19 +3,6 @@
             [toepen.client.ws :as ws]
             [clojure.string :as str]))
 
-;(defn root
-;  []
-;  [:div
-;   [:button
-;    {:class "bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-;     :on-click (fn [_] (ws/send! [:game/reset]))}
-;    "reset game"]
-;   [:button
-;     {:class "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-;      :on-click (fn [_] (ws/send! [:game/deal]))}
-;     "deal cards"]
-;   [:pre [:code (with-out-str (pp/pprint @state))]]])
-
 (defn card
   [{:keys [card index visible? base-size ml mt back-color card-action]
     :or {base-size "6rem"
@@ -78,6 +65,14 @@
   [name]
   [:span {:class "bg-white rounded-lg p-2 shadow m-4 text-lg font-medium"} name])
 
+(comment
+  (defn editable-name-tag
+    [{:keys [name editable?]
+      :or {name ""
+           editable? false}}]
+    (let [state (r/atom {:text name})])))
+
+
 (defn player
   [{:keys [name hand table]}]
   [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
@@ -88,7 +83,7 @@
            :size :xs
            :extra-classes "mb-4"}]
    [stack {:stack table
-           :mode :hand
+           :mode :stack
            :extra-classes "mb-4"}]])
 
 (defn middle-of-table
@@ -145,4 +140,3 @@
                        :discarded discarded}]
      [dashboard {:player (get-in @state [:game :players uid])
                  :uid uid}]]))
-
