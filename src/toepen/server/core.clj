@@ -60,6 +60,7 @@
               :frame-options :sameorigin
               :content-type-options :nosniff
               :ssl-redirect true}
+   :proxy true
    :static {:resources "public"}
    :responses {:not-modified-responses true
                :absolute-redirects true
