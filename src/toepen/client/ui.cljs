@@ -157,7 +157,7 @@
         {:keys [players deck discarded]} (:game @state)]
     [:div {:class "h-screen w-screen bg-gray-100 flex flex-col flex-no-wrap items-stretch justify-start"}
      [:div {:class "flex-1 flex flex-row flex-no-wrap items-stretch justify-around"}
-      (for [[id p] players]
+      (for [[id p] (dissoc players uid)]
         ^{:key id} [player p])]
      [middle-of-table {:deck deck
                        :discarded discarded}]
