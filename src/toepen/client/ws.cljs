@@ -14,3 +14,4 @@
 (def state (:state socket))
 (def send! (:send-fn socket))
 (def chan (:ch-recv socket))
+(def success? sente/cb-success?)

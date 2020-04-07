@@ -42,7 +42,7 @@
         (update :players dissoc player-id))
     game))
 
-(defn set-player-name
+(defn update-name
   "Updates display name of the player"
   [game player-id new-name]
   (assoc-in game [:players player-id :name] new-name))

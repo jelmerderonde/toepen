@@ -62,6 +62,12 @@
   (let [{:keys [player-id card]} ?data]
     (swap! state game/play-card player-id card)))
 
+(defmethod handle-msg :game/update-name
+  [{:keys [?data ?reply-fn]}]
+  (let [{:keys [player-id name]} ?data]
+    (swap! state game/update-name player-id name)
+    (?reply-fn true)))
+
 (defn start-event-handling!
   []
   (sente/start-server-chsk-router!

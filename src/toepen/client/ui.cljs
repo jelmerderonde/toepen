@@ -1,7 +1,9 @@
 (ns toepen.client.ui
   (:require [toepen.client.state :refer [state]]
             [toepen.client.ws :as ws]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [reagent.core :as r]
+            [reagent.dom :as rdom]))
 
 (defn card
   [{:keys [card index visible? base-size ml mt back-color card-action]
@@ -62,21 +64,42 @@
                         :card-action card-action}])]))
 
 (defn name-tag
-  [name]
-  [:span {:class "bg-white rounded-lg p-2 shadow m-4 text-lg font-medium"} name])
-
-(comment
-  (defn editable-name-tag
-    [{:keys [name editable?]
-      :or {name ""
-           editable? false}}]
-    (let [state (r/atom {:text name})])))
-
+  []
+  (let [editing? (r/atom false)
+        new-name (r/atom "")]
+    (fn [{:keys [name editable? uid]
+          :or {name ""
+               editable? false}}]
+      (let [close #(do (swap! editing? not) (reset! new-name ""))
+            send (fn []
+                   (let [v (-> @new-name str str/trim)]
+                     (if-not (empty? v)
+                       (ws/send! [:game/update-name {:player-id uid :name v}]
+                                 4000
+                                 (fn [reply]
+                                   (if (ws/success? reply)
+                                     (swap! editing? not)
+                                     (close))))
+                       (close))))]
+        (if @editing?
+          [:input {:class "bg-gray-200 rounded-lg p-2 shadow m-4 text-lg font-medium outline-none focus:shadow-outline focus:bg-blue-100"
+                   :type :text
+                   :value @new-name
+                   :placeholder "Player name"
+                   :on-change #(reset! new-name (-> % .-target .-value))
+                   :on-blur #(do (send))
+                   :on-key-down #(case (.-which %)
+                                   13 (send)
+                                   nil)
+                   :autoFocus true}]
+          [:span {:class "bg-white rounded-lg p-2 shadow m-4 text-lg font-medium select-none cursor-pointer"
+                  :on-click #(when editable? (swap! editing? not))}
+                 name])))))
 
 (defn player
   [{:keys [name hand table]}]
   [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
-   [name-tag name]
+   [name-tag {:name name}]
    [stack {:stack hand
            :mode :hand
            :visible? false
@@ -113,7 +136,7 @@
   (let [{:keys [name hand table]} player]
     [:div {:class "flex-grow flex flex-col flex-no-wrap items-stretch justify-start"}
      [:div {:class "flex flex-row flex-no-wrap items-start justify-start"}
-      [name-tag name]]
+      [name-tag {:name name :editable? true :uid uid}]]
      [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
       [stack {:stack table
               :mode :stack
