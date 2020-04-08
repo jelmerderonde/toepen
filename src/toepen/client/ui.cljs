@@ -124,7 +124,8 @@
              :on-click (fn [_] (ws/send! [:game/shuffle]))}
      "Shuffle cards"]
    [:button {:class "bg-red-400 text-red-100 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow  mt-4 w-48"
-             :on-click (fn [_] (ws/send! [:game/reset]))}
+             :on-click (fn [_] (when (js/confirm "Reset the game? All points will be reset!")
+                                 (ws/send! [:game/reset])))}
      "Reset game"]])
 
 (defn the-deck
