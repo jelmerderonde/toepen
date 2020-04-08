@@ -131,12 +131,17 @@
            :extra-classes "m-6"
            :back-color "text-gray-700"}]])
 
-(defn dashboard
+(defn menu
+  [{:keys [name uid]}]
+  [:div {:class "flex flex-col flex-no-wrap items-stretch justify-start"}
+   [name-tag {:name name :editable? true :uid uid}]])
+
+(defn hand
   [{:keys [player uid]}]
-  (let [{:keys [name hand table]} player]
+  (let [{:keys [hand table]} player]
     [:div {:class "flex-grow flex flex-col flex-no-wrap items-stretch justify-start"}
-     [:div {:class "flex flex-row flex-no-wrap items-start justify-start"}
-      [name-tag {:name name :editable? true :uid uid}]]
+     [:div {:class "flex flex-row flex-no-wrap items-start justify-start"}]
+
      [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
       [stack {:stack table
               :mode :stack
@@ -150,16 +155,30 @@
               :card-action (fn [_ card] (ws/send! [:game/play-card {:player-id uid :card card}]))
               :extra-classes "mb-4"}]]]))
 
+(defn top
+  [{:keys [players uid]}]
+  [:div {:class "flex-1 flex flex-row flex-wrap items-stretch justify-around"}
+   (for [[id p] (dissoc players uid)]
+     ^{:key id} [player p])])
+
+(defn bottom
+  [{:keys [uid players]}]
+  (let [player (get players uid)]
+    [:div {:class "flex-1 flex flex-row flex-no-wrap items-strecth justify-around"}
+     [menu {:name (get player :name)
+            :uid uid}]
+     [hand {:player player
+            :uid uid}]]))
 
 (defn root
   []
   (let [uid (:uid @state)
         {:keys [players deck discarded]} (:game @state)]
     [:div {:class "h-screen w-screen bg-gray-100 flex flex-col flex-no-wrap items-stretch justify-start"}
-     [:div {:class "flex-1 flex flex-row flex-no-wrap items-stretch justify-around"}
-      (for [[id p] (dissoc players uid)]
-        ^{:key id} [player p])]
+     [top {:players players
+           :uid uid}]
+     [bottom {:players players
+              :uid uid}]
      [middle-of-table {:deck deck
-                       :discarded discarded}]
-     [dashboard {:player (get-in @state [:game :players uid])
-                 :uid uid}]]))
+                       :discarded discarded}]]))
+
