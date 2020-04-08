@@ -82,7 +82,7 @@
                                      (close))))
                        (close))))]
         (if @editing?
-          [:input {:class "bg-gray-200 rounded-lg p-2 shadow m-4 text-lg font-medium outline-none focus:shadow-outline focus:bg-blue-100"
+          [:input {:class "bg-gray-200 rounded-lg p-2 shadow text-lg text-center font-medium outline-none focus:shadow-outline focus:bg-blue-100 w-48"
                    :type :text
                    :value @new-name
                    :placeholder "Player name"
@@ -92,83 +92,92 @@
                                    13 (send)
                                    nil)
                    :autoFocus true}]
-          [:span {:class "bg-white rounded-lg p-2 shadow m-4 text-lg font-medium select-none cursor-pointer"
+          [:span {:class (str "text-center block bg-white rounded-lg p-2 shadow text-lg font-medium truncate" (when editable? " select-none cursor-pointer"))
+                  :style {:max-width "14rem"}
                   :on-click #(when editable? (swap! editing? not))}
                  name])))))
 
 (defn player
   [{:keys [name hand table]}]
-  [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
-   [name-tag {:name name}]
-   [stack {:stack hand
-           :mode :hand
-           :visible? false
-           :size :xs
-           :extra-classes "mb-4"}]
+  [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-start"}
+   [:div {:class "flex flex-col flex-no-wrap items-center justify-between p-4 bg-gray-200 rounded-b-lg"
+          :style {:min-width "8rem"}}
+    [name-tag {:name name}]
+    [stack {:stack hand
+            :mode :hand
+            :visible? false
+            :size :xs
+            :extra-classes "mt-2"}]]
    [stack {:stack table
-           :mode :stack
-           :extra-classes "mb-4"}]])
+           :mode :hand
+           :extra-classes "mt-3"}]])
 
-(defn middle-of-table
-  [{:keys [deck discarded]}]
-  [:div {:class "flex-1 flex flex-row flex-no-wrap items-center justify-center"}
-   [:div {:class "flex flex-col flex-no-wrap items-stretch"}
-    [:button {:class "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded my-4"
-              :on-click (fn [_] (ws/send! [:game/deal]))}
-      "Deal (4)"]
-    [:button {:class "bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded my-4"
-              :on-click (fn [_] (ws/send! [:game/reset]))}
-      "Reset game"]]
+(defn menu
+  [{:keys [name uid]}]
+  [:div {:class "flex-initial flex flex-col flex-no-wrap items-center justify-start pt-10"
+         :style {:width "24rem"}}
+   [name-tag {:name name :editable? true :uid uid}]
+   [:button {:class "bg-green-400 text-green-100 hover:bg-green-600 text-white font-bold py-2 px-4 rounded shadow mt-4 w-48"
+             :on-click (fn [_] (ws/send! [:game/deal]))}
+     "Deal (4)"]
+   [:button {:class "bg-blue-400 text-blue-100 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded shadow  mt-4 w-48"
+             :on-click (fn [_] (ws/send! [:game/shuffle]))}
+     "Shuffle cards"]
+   [:button {:class "bg-red-400 text-red-100 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow  mt-4 w-48"
+             :on-click (fn [_] (ws/send! [:game/reset]))}
+     "Reset game"]])
+
+(defn the-deck
+  [{:keys [deck discarded uid]}]
+  [:div {:class "flex-initial flex flex-row flex-no-wrap items-center justify-center"
+         :style {:width "24rem"}}
    [stack {:stack deck
            :mode :deck
            :visible? false
-           :extra-classes "m-6"
-           :size :base}]
+           :extra-classes ""
+           :size :base
+           :stack-action (fn [_] (ws/send! [:game/draw-card {:player-id uid}]))}]
    [stack {:stack discarded
            :mode :deck
            :visible? false
            :size :base
-           :extra-classes "m-6"
+           :extra-classes ""
            :back-color "text-gray-700"}]])
-
-(defn menu
-  [{:keys [name uid]}]
-  [:div {:class "flex flex-col flex-no-wrap items-stretch justify-start"}
-   [name-tag {:name name :editable? true :uid uid}]])
 
 (defn hand
   [{:keys [player uid]}]
   (let [{:keys [hand table]} player]
-    [:div {:class "flex-grow flex flex-col flex-no-wrap items-stretch justify-start"}
-     [:div {:class "flex flex-row flex-no-wrap items-start justify-start"}]
-
-     [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-around"}
-      [stack {:stack table
-              :mode :stack
-              :visible? true
-              :size :base
-              :extra-classes "mb-4"}]
+    [:div {:class "flex-grow flex flex-col flex-no-wrap items-center justify-end"}
+     [stack {:stack table
+             :mode :hand
+             :visible? true
+             :size :base
+             :extra-classes "mb-3"}]
+     [:div {:class "flex flex-row flex-no-wrap items-center justify-center p-4 bg-gray-200 rounded-t-lg"
+            :style {:min-width "50%"}}
       [stack {:stack hand
               :mode :hand
               :visible? true
               :size :lg
-              :card-action (fn [_ card] (ws/send! [:game/play-card {:player-id uid :card card}]))
-              :extra-classes "mb-4"}]]]))
+              :card-action (fn [_ card] (ws/send! [:game/play-card {:player-id uid :card card}]))}]]]))
 
 (defn top
   [{:keys [players uid]}]
-  [:div {:class "flex-1 flex flex-row flex-wrap items-stretch justify-around"}
+  [:div {:class "flex-1 flex flex-row flex-wrap items-start justify-around"}
    (for [[id p] (dissoc players uid)]
      ^{:key id} [player p])])
 
 (defn bottom
-  [{:keys [uid players]}]
+  [{:keys [uid players deck discarded]}]
   (let [player (get players uid)]
-    [:div {:class "flex-1 flex flex-row flex-no-wrap items-strecth justify-around"}
+    [:div {:class "flex-1 flex flex-row flex-no-wrap items-stretch justify-around"}
      [menu {:name (get player :name)
             :uid uid}]
      [hand {:player player
-            :uid uid}]]))
+            :uid uid}]
+     [the-deck {:deck deck
+                :discarded discarded
+                :uid uid}]]))
 
 (defn root
   []
@@ -178,7 +187,6 @@
      [top {:players players
            :uid uid}]
      [bottom {:players players
-              :uid uid}]
-     [middle-of-table {:deck deck
-                       :discarded discarded}]]))
-
+              :uid uid
+              :deck deck
+              :discarded discarded}]]))
