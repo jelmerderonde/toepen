@@ -1,4 +1,4 @@
-(ns toepen.server.game
+(ns toepen.common.game
   (:require [toepen.common.cards :as c]))
 
 (defn new-game
@@ -10,11 +10,14 @@
 
 (defn new-player
   "Creates a new empty player state"
-  []
-  {:name "Unnamed player"
-   :hand (c/stack)
-   :table (c/stack)
-   :points 0})
+  [player-id position]
+  {:id player-id
+   :name "Unnamed player"
+   :hand (assoc (c/stack) :visible-for #{player-id})
+   :table (assoc (c/stack) :visible-for :all)
+   :position position
+   :points 0
+   :dealer? false})
 
 (defn player-ids
   "Returns all player ids in the game"
@@ -29,7 +32,28 @@
 (defn add-player
   "Adds a new player to the game"
   [game player-id]
-  (assoc-in game [:players player-id] (new-player)))
+  (let [next-position (->> game
+                           :players
+                           vals
+                           (map :position)
+                           c/next-pos)]
+    (-> game
+        (assoc-in [:players player-id] (new-player player-id next-position))
+        (assoc-in [:players player-id :dealer?] (= 0 next-position)))))
+
+(map (juxt :a :b) [{:a 1 :b 3} {:a 2 :b 4}])
+
+(defn get-order
+  "Returns the player-ids in the order of
+  entering the game."
+  [game]
+  (->> game
+       :players
+       vals
+       (map (juxt :id :position))
+       (sort-by second)
+       (map first)
+       (vec)))
 
 (defn remove-player
   "Removes a player from the game and

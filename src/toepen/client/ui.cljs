@@ -2,6 +2,7 @@
   (:require [toepen.client.state :refer [state]]
             [toepen.client.ws :as ws]
             [toepen.common.cards :as c]
+            [toepen.common.game :as g]
             [clojure.string :as str]
             [reagent.core :as r]))
 
@@ -164,10 +165,22 @@
               :order :by-rank
               :card-action (fn [_ card] (ws/send! [:game/play-card {:player-id uid :card card}]))}]]]))
 
+(defn ordered-opponents
+  [{:keys [uid game]}]
+  (let [order (g/get-order game)
+        players (get game :players)
+        c (count players)
+        idx (.indexOf (to-array order) uid)
+        ordered-ids (->> (cycle order)
+                         (take (+ c idx))
+                         (drop (inc idx)))]
+    (for [id ordered-ids]
+      (get players id))))
+
 (defn top
-  [{:keys [players uid]}]
+  [{:keys [state]}]
   [:div {:class "flex-1 flex flex-row flex-wrap items-start justify-around"}
-   (for [[id p] (dissoc players uid)]
+   (for [{:keys [id] :as p} (ordered-opponents state)]
      ^{:key id} [player p])])
 
 (defn bottom
@@ -187,8 +200,7 @@
   (let [uid (:uid @state)
         {:keys [players deck discarded]} (:game @state)]
     [:div {:class "h-screen w-screen bg-gray-100 flex flex-col flex-no-wrap items-stretch justify-start"}
-     [top {:players players
-           :uid uid}]
+     [top {:state @state}]
      [bottom {:players players
               :uid uid
               :deck deck

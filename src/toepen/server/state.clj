@@ -1,7 +1,7 @@
 (ns toepen.server.state
   (:require [toepen.server.ws :as ws]
             [taoensso.sente :as sente]
-            [toepen.server.game :as game]))
+            [toepen.common.game :as game]))
 
 (def state (atom {}))
 
@@ -83,7 +83,7 @@
     ws/chan handle-msg))
 
 (comment
-  (do @state)
+  (tap> @state)
 
   (do
     (stop-watch!)

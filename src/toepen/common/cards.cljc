@@ -8,11 +8,11 @@
       [s c])))
 
 (defn next-pos
-  "Determines the next insertion position
-  for a stack."
-  [{:keys [cards]}]
-  (if (seq cards)
-    (->> cards vals (apply max) inc)
+  "Determines the next highest int
+  for a coll of integers."
+  [coll]
+  (if (seq coll)
+    (->> coll (apply max) inc)
     0))
 
 (defn add-card
@@ -20,7 +20,7 @@
   [stack card]
   (if (contains? (:cards stack) card)
     stack
-    (-> stack (assoc-in [:cards card] (next-pos stack))
+    (-> stack (assoc-in [:cards card] (-> stack :cards vals next-pos))
               (update-in [:n] inc))))
 
 (defn add-cards
