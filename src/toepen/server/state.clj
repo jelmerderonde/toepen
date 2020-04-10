@@ -85,12 +85,4 @@
 (comment
   (tap> @state)
 
-  (do
-    (stop-watch!)
-    (start-watch!))
-
-  (swap! state game/deal-cards 4)
-  (swap! state game/reset-game)
-  (swap! state toepen.server.cards/move-card [:deck] [:discarded] [:space :queen])
-  (swap! state game/play-rand-card "c088a409-4791-4562-b98d-71ad45de3861")
   nil)

@@ -41,7 +41,10 @@
         (assoc-in [:players player-id] (new-player player-id next-position))
         (assoc-in [:players player-id :dealer?] (= 0 next-position)))))
 
-(map (juxt :a :b) [{:a 1 :b 3} {:a 2 :b 4}])
+(defn is-dealer?
+  "Checks if the player with this id is the dealer."
+  [game player-id]
+  (get-in game [:players player-id :dealer?] false))
 
 (defn get-order
   "Returns the player-ids in the order of
@@ -55,15 +58,21 @@
        (map first)
        (vec)))
 
+; TODO fix changing of dealer
 (defn remove-player
   "Removes a player from the game and
   moves their cards to the discarded pile"
   [game player-id]
   (if (player-exists? game player-id)
-    (-> game
-        (c/move-all-cards [:players player-id :hand] [:discarded])
-        (c/move-all-cards [:players player-id :table] [:discarded])
-        (update :players dissoc player-id))
+    (let [dealer? (is-dealer? game player-id)
+          new-game (-> game
+                       (c/move-all-cards [:players player-id :hand] [:discarded])
+                       (c/move-all-cards [:players player-id :table] [:discarded])
+                       (update :players dissoc player-id))]
+      (if (and dealer? (> 1 (count (:players game))))
+        (let [new-dealer (-> new-game :players ffirst)]
+          (assoc-in new-game [:players new-dealer :dealer?] true))
+        new-game))
     game))
 
 (defn update-name
