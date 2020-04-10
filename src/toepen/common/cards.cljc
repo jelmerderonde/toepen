@@ -67,15 +67,23 @@
       (< c1r c2r) 1
       :else 0)))
 
+(defn list-if-empty
+  "Checks if coll is empty and returns
+  an empty list if it is."
+  [coll]
+  (if (seq coll)
+    coll
+    (list)))
+
 (defn get-cards
   "Returns the cards from a stack. You can optionally pass
   :by-rank or :by-order to return the cards in the specified
   order."
   ([stack]
-   (-> stack :cards keys))
+   (list-if-empty (-> stack :cards keys)))
   ([stack order]
    (case order
-     :by-order (keys (sort-by val < (:cards stack)))
+     :by-order (list-if-empty (keys (sort-by val < (:cards stack))))
      :by-rank (sort by-rank (-> stack :cards keys))
      (get-cards stack))))
 

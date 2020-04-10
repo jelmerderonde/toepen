@@ -1,9 +1,9 @@
 (ns toepen.client.ui
   (:require [toepen.client.state :refer [state]]
             [toepen.client.ws :as ws]
+            [toepen.common.cards :as c]
             [clojure.string :as str]
-            [reagent.core :as r]
-            [reagent.dom :as rdom]))
+            [reagent.core :as r]))
 
 (defn card
   [{:keys [card index visible? base-size ml mt back-color card-action]
@@ -24,7 +24,7 @@
      [:use {:href filename}]]))
 
 (defn stack
-  [{:keys [stack mode visible? size back-color extra-classes card-action stack-action]
+  [{:keys [stack mode visible? size back-color extra-classes card-action stack-action order]
     :or {mode :stack ; stack, hand or deck
          size :base ; :xs, :sm, :base, :lg
          visible? true
@@ -32,7 +32,7 @@
          extra-classes ""
          card-action (fn [_ _] nil)
          stack-action (fn [_] nil)}}]
-  (let [cards (into [] (:cards stack))
+  (let [cards (vec (c/get-cards stack order))
         base-size (case size
                     :xs "2rem"
                     :sm "4rem"
@@ -110,7 +110,8 @@
             :extra-classes "mt-2"}]]
    [stack {:stack table
            :mode :hand
-           :extra-classes "mt-3"}]])
+           :extra-classes "mt-3"
+           :order :by-order}]])
 
 (defn menu
   [{:keys [name uid]}]
@@ -122,7 +123,7 @@
      "Deal (4)"]
    [:button {:class "bg-blue-400 text-blue-100 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded shadow  mt-4 w-48"
              :on-click (fn [_] (ws/send! [:game/shuffle]))}
-     "Shuffle cards"]
+     "Shuffle all cards"]
    [:button {:class "bg-red-400 text-red-100 hover:bg-red-600 text-white font-bold py-2 px-4 rounded shadow  mt-4 w-48"
              :on-click (fn [_] (when (js/confirm "Reset the game? All points will be reset!")
                                  (ws/send! [:game/reset])))}
@@ -160,6 +161,7 @@
               :mode :hand
               :visible? true
               :size :lg
+              :order :by-rank
               :card-action (fn [_ card] (ws/send! [:game/play-card {:player-id uid :card card}]))}]]]))
 
 (defn top
