@@ -57,10 +57,19 @@
   [_]
   (swap! state game/deal-cards 4))
 
+(defmethod handle-msg :game/shuffle
+  [_]
+  (swap! state game/clean-table))
+
 (defmethod handle-msg :game/play-card
   [{:keys [?data]}]
   (let [{:keys [player-id card]} ?data]
     (swap! state game/play-card player-id card)))
+
+(defmethod handle-msg :game/draw-card
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/draw-card player-id)))
 
 (defmethod handle-msg :game/update-name
   [{:keys [?data ?reply-fn]}]
