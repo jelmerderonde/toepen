@@ -1,5 +1,5 @@
 (ns toepen.server.game
-  (:require [toepen.server.cards :as c]))
+  (:require [toepen.common.cards :as c]))
 
 (defn new-game
   "Creates a new game state"
