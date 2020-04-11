@@ -58,7 +58,6 @@
        (map first)
        (vec)))
 
-; TODO fix changing of dealer
 (defn remove-player
   "Removes a player from the game and
   moves their cards to the discarded pile"
@@ -69,7 +68,7 @@
                        (c/move-all-cards [:players player-id :hand] [:discarded])
                        (c/move-all-cards [:players player-id :table] [:discarded])
                        (update :players dissoc player-id))]
-      (if (and dealer? (> 1 (count (:players game))))
+      (if (and dealer? (seq (:players new-game)))
         (let [new-dealer (-> new-game :players ffirst)]
           (assoc-in new-game [:players new-dealer :dealer?] true))
         new-game))
@@ -163,13 +162,9 @@
   (-> (new-game)
       (add-player :a)
       (add-player :b)
-      (add-player :c)
-      (deal-cards 4)
-      (play-rand-card :a)
-      (play-rand-card :a)
-      (play-rand-card :a)
-      (play-rand-card :a)
-      (play-rand-card :b))
+      (doto tap>)
+      (remove-player :a)
+      (doto tap>))
 
   nil)
 
