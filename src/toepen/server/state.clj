@@ -71,11 +71,41 @@
   (let [{:keys [player-id]} ?data]
     (swap! state game/draw-card player-id)))
 
+(defmethod handle-msg :game/discard-hand
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/discard-hand player-id)))
+
 (defmethod handle-msg :game/update-name
   [{:keys [?data ?reply-fn]}]
   (let [{:keys [player-id name]} ?data]
     (swap! state game/update-name player-id name)
     (?reply-fn true)))
+
+(defmethod handle-msg :game/inc-points
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/inc-points player-id)))
+
+(defmethod handle-msg :game/dec-points
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/dec-points player-id)))
+
+(defmethod handle-msg :game/claim-dirty
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/claim-dirty player-id)))
+
+(defmethod handle-msg :game/cancel-dirty
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/cancel-dirty player-id)))
+
+(defmethod handle-msg :game/show-hand-to
+  [{:keys [?data]}]
+  (let [{:keys [player-id-from player-id-to]} ?data]
+    (swap! state game/show-hand-to player-id-from player-id-to)))
 
 (defn start-event-handling!
   []

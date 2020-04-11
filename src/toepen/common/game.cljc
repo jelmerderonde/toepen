@@ -17,7 +17,8 @@
    :table (assoc (c/stack) :visible-for :all)
    :position position
    :points 0
-   :dealer? false})
+   :dealer? false
+   :dirty? false})
 
 (defn player-ids
   "Returns all player ids in the game"
@@ -60,7 +61,7 @@
 
 (defn remove-player
   "Removes a player from the game and
-  moves their cards to the discarded pile"
+  moves their cards to the discarded pile."
   [game player-id]
   (if (player-exists? game player-id)
     (let [dealer? (is-dealer? game player-id)
@@ -75,9 +76,51 @@
     game))
 
 (defn update-name
-  "Updates display name of the player"
+  "Updates display name of the player."
   [game player-id new-name]
   (assoc-in game [:players player-id :name] new-name))
+
+(defn inc-points
+  "Increments the points of the player."
+  [game player-id]
+  (update-in game [:players player-id :points] inc))
+
+(defn dec-points
+  "Increments the points of the player."
+  [game player-id]
+  (update-in game [:players player-id :points] dec))
+
+(defn dirty-laundry?
+  "Returns true if the player has claimed
+  dirty laundry."
+  [game player-id]
+  (get-in game [:players player-id :dirty?] false))
+
+(defn show-hand-to
+  "Shows the hand of the from player
+   to the to player."
+  [game player-id-from player-id-to]
+  (if (dirty-laundry? game player-id-from)
+    (update-in game [:players player-id-from :hand :visible-for] conj player-id-to)
+    game))
+
+(defn reset-visibility
+  "Resets visibility so cards are only
+  visible for the player."
+  [game player-id]
+  (assoc-in game [:players player-id :hand :visible-for] #{player-id}))
+
+(defn claim-dirty
+  "Claims dirty laundry for the player."
+  [game player-id]
+  (assoc-in game [:players player-id :dirty?] true))
+
+(defn cancel-dirty
+  "Cancels dirty laundry for the player."
+  [game player-id]
+  (-> game
+      (assoc-in [:players player-id :dirty?] false)
+      (reset-visibility player-id)))
 
 (defn deal-cards
   "Deal `n` cards from the deck to all
@@ -100,13 +143,15 @@
 
 (defn play-card
   "Moves a card from player hand to
-  player table."
+  player table. Also resets visibility"
   [game player-id card]
   (if (player-exists? game player-id)
-    (c/move-card game
-      [:players player-id :hand]
-      [:players player-id :table]
-      card)
+    (-> game
+        (c/move-card
+          [:players player-id :hand]
+          [:players player-id :table]
+          card)
+        (reset-visibility player-id))
     game))
 
 (defn play-rand-card
@@ -119,6 +164,18 @@
         (play-card game player-id card)
         game))
     game))
+
+(defn discard-hand
+  "Discards the hand of the player. Also
+  resets visibilit status and dirty
+  laundry status."
+  [game player-id]
+  (-> game
+      (c/move-all-cards
+        [:players player-id :hand]
+        [:discarded])
+      (reset-visibility player-id)
+      (cancel-dirty player-id)))
 
 (defn finish-round
   "Finishes the round by moving all (un)played
@@ -152,7 +209,9 @@
                         (-> game
                             (update-in [:players player-id :hand] c/remove-all-cards)
                             (update-in [:players player-id :table] c/remove-all-cards)
-                            (assoc-in [:players player-id :points] 0)))]
+                            (assoc-in [:players player-id :points] 0)
+                            (assoc-in [:players player-id :hand :visible-for] #{player-id})
+                            (assoc-in [:players player-id :dirty?] false)))]
     (-> (reduce reset-players game player-ids)
         (assoc-in [:deck] (c/stack c/toep-cards))
         (assoc-in [:discarded] (c/stack)))))
@@ -162,8 +221,11 @@
   (-> (new-game)
       (add-player :a)
       (add-player :b)
+      (deal-cards 4)
       (doto tap>)
-      (remove-player :a)
+      (claim-dirty :a)
+      (show-hand-to :a :b)
+      (discard-hand :a)
       (doto tap>))
 
   nil)
