@@ -107,6 +107,16 @@
   (let [{:keys [player-id-from player-id-to]} ?data]
     (swap! state game/show-hand-to player-id-from player-id-to)))
 
+(defmethod handle-msg :game/deactivate
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/deactivate player-id)))
+
+(defmethod handle-msg :game/activate
+  [{:keys [?data]}]
+  (let [{:keys [player-id]} ?data]
+    (swap! state game/activate player-id)))
+
 (defn start-event-handling!
   []
   (sente/start-server-chsk-router!

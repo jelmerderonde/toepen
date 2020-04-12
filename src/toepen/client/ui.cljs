@@ -116,10 +116,13 @@
 
 (defn player
   [{:keys [game uid player-id]}]
-  (let [{:keys [name hand table dealer? points dirty?]} (get-in game [:players player-id])
+  (let [{:keys [name hand table dealer? points dirty? active?]} (get-in game [:players player-id])
         my-hand-visible? (contains? (get-in game [:players uid :hand :visible-for]) player-id)]
     [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-start"}
-     [:div {:class (str "flex flex-col flex-no-wrap items-center justify-between p-4 rounded-b-lg " (if my-hand-visible? "bg-red-200" "bg-gray-200"))
+     [:div {:class (str "flex flex-col flex-no-wrap items-center justify-between p-4 rounded-b-lg " (cond
+                                                                                                      my-hand-visible? "bg-red-200"
+                                                                                                      active?          "bg-gray-200"
+                                                                                                      :else nil))
             :style {:min-width "8rem"}}
       [name-tag {:name name
                  :dealer? dealer?
@@ -148,7 +151,7 @@
 
 (defn menu
   [{:keys [player uid]}]
-  (let [{:keys [dealer? points dirty? name]} player]
+  (let [{:keys [dealer? points dirty? name active?]} player]
     [:div {:class "flex-initial flex flex-col flex-no-wrap items-center justify-start pt-10"
            :style {:width "24rem"}}
      [name-tag {:name name
@@ -169,6 +172,12 @@
                                   (ws/send! [:game/cancel-dirty {:player-id uid}])
                                   (ws/send! [:game/claim-dirty {:player-id uid}])))
               :text (if dirty? "Oeps, toch niet" "Vuile was")}]
+     [button {:extra-classes (str "w-48 " (if active? "bg-blue-400 text-blue-100 hover:bg-blue-600"
+                                                      "bg-gray-400 text-gray-100 hover:bg-gray-600"))
+              :on-click (fn [_] (if active?
+                                  (ws/send! [:game/deactivate {:player-id uid}])
+                                  (ws/send! [:game/activate {:player-id uid}])))
+              :text (if active? "Ik ben weg!" "Ik ben er toch...")}]
      (when dirty?
        [button {:extra-classes "bg-red-400 text-red-100 hover:bg-red-600 w-48"
                 :on-click (fn [_] (ws/send! [:game/discard-hand {:player-id uid}]))
@@ -205,14 +214,16 @@
 
 (defn hand
   [{:keys [player uid]}]
-  (let [{:keys [hand table dirty?]} player]
+  (let [{:keys [hand table dirty? active?]} player]
     [:div {:class "flex-grow flex flex-col flex-no-wrap items-center justify-end"}
      [stack {:stack table
              :mode :hand
              :uid uid
              :size :base
              :extra-classes "mb-3"}]
-     [:div {:class (str "flex flex-row flex-no-wrap items-center justify-center p-4 rounded-t-lg " (if dirty? "bg-red-200" "bg-gray-200"))
+     [:div {:class (str "flex flex-row flex-no-wrap items-center justify-center p-4 rounded-t-lg " (cond dirty? "bg-red-200"
+                                                                                                         active? "bg-gray-200"
+                                                                                                         :else nil))
             :style {:min-width "50%"}}
       [stack {:stack hand
               :uid uid

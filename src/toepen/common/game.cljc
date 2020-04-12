@@ -18,7 +18,8 @@
    :position position
    :points 0
    :dealer? false
-   :dirty? false})
+   :dirty? false
+   :active? true})
 
 (defn player-ids
   "Returns all player ids in the game"
@@ -121,6 +122,16 @@
   (-> game
       (assoc-in [:players player-id :dirty?] false)
       (reset-visibility player-id)))
+
+(defn deactivate
+  "Deactivates the player."
+  [game player-id]
+  (assoc-in game [:players player-id :active?] false))
+
+(defn activate
+  "Activates the player."
+  [game player-id]
+  (assoc-in game [:players player-id :active?] true))
 
 (defn deal-cards
   "Deal `n` cards from the deck to all
