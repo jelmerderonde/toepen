@@ -1,16 +1,33 @@
 (ns toepen.server.state
   (:require [toepen.server.ws :as ws]
             [taoensso.sente :as sente]
-            [toepen.common.game :as game]))
+            [toepen.common.game :as game]
+            [clojure.data :as data]))
 
 (def state (atom {}))
 
+(defn changed-game
+  "Determines which game changed after
+  a state update"
+  [old new]
+  (let [diff (data/diff old new)]
+    (-> diff first keys first)))
+
+(defn game-client?
+  "Checks if the id of the client belongs to
+  the game id specified"
+  [game id]
+  (= (subs id 37) game))
+
 ; TODO filter state so it is no longer possible to cheat
 (defn send-state
-  [_ _ _ new-state]
-  (tap> "[server] new state")
-  (doseq [uid (:any @ws/connected)]
-    (ws/send! uid [:state/new new-state])))
+  [_ _ old-state new-state]
+  (when-let [changed (changed-game old-state new-state)]
+    (tap> (str "[" changed "] new state"))
+    (doseq [uid (->> @ws/connected
+                     :any
+                     (filter (partial game-client? changed)))]
+      (ws/send! uid [:state/new (get new-state changed)]))))
 
 (defn start-watch!
   []
@@ -27,95 +44,118 @@
   (when (not= id :chsk/ws-ping)
     (tap> (dissoc msg :ring-req))))
 
+(defn get-game-id
+  "Extracts the game id from the msg"
+  [msg]
+  (get-in msg [:ring-req :params :game-id]))
+
 ; handle the arrival of a new client
 (defmethod handle-msg :chsk/uidport-open
-  [{:keys [uid]}]
-  (tap> "[server] user connected")
-  (if (empty? @state)
-    (reset! state (-> (game/new-game)
-                      (game/add-player uid)))
-    (swap! state game/add-player uid)))
+  [{:keys [uid] :as msg}]
+  (let [game-id (get-game-id msg)]
+    (tap> (str "[" game-id "] user connected"))
+    (if (contains? @state game-id)
+      (swap! state update game-id game/add-player uid)
+      (swap! state assoc game-id (-> (game/new-game)
+                                     (game/add-player uid))))))
 
 (defmethod handle-msg :state/request
-  [{:keys [uid]}]
-  (ws/send! uid [:state/new @state]))
+  [{:keys [uid] :as msg}]
+  (let [game-id (get-game-id msg)]
+    (ws/send! uid [:state/new (get @state game-id)])))
 
 (defmethod handle-msg :chsk/uidport-close
-  [{:keys [uid]}]
-  (tap> "[server] user disconnected")
-  (if (= (count (:players @state)) 1)
-    (do
-      (tap> "[server] all users disconnected, clearing game")
-      (reset! state {}))
-    (swap! state game/remove-player uid)))
+  [{:keys [uid] :as msg}]
+  (let [game-id (get-game-id msg)]
+    (tap> (str "[" game-id "] user disconnected"))
+    (if (= (count (:players (get @state game-id)))
+           1)
+      (do
+        (tap> (str "[" game-id "] all users disconnected, clearing game"))
+        (swap! state dissoc game-id))
+      (swap! state update game-id game/remove-player uid))))
 
 (defmethod handle-msg :game/reset
-  [_]
-  (swap! state game/reset-game))
+  [msg]
+  (let [game-id (get-game-id msg)]
+    (swap! state update game-id game/reset-game)))
 
 (defmethod handle-msg :game/deal
-  [_]
-  (swap! state game/deal-cards 4))
+  [msg]
+  (let [game-id (get-game-id msg)]
+    (swap! state update game-id game/deal-cards 4)))
 
 (defmethod handle-msg :game/shuffle
-  [_]
-  (swap! state game/clean-table))
+  [msg]
+  (let [game-id (get-game-id msg)]
+    (swap! state update game-id game/clean-table)))
 
 (defmethod handle-msg :game/play-card
-  [{:keys [?data]}]
-  (let [{:keys [player-id card]} ?data]
-    (swap! state game/play-card player-id card)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id card]} ?data]
+    (swap! state update game-id game/play-card player-id card)))
 
 (defmethod handle-msg :game/draw-card
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/draw-card player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/draw-card player-id)))
 
 (defmethod handle-msg :game/discard-hand
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/discard-hand player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/discard-hand player-id)))
 
 (defmethod handle-msg :game/update-name
-  [{:keys [?data ?reply-fn]}]
-  (let [{:keys [player-id name]} ?data]
-    (swap! state game/update-name player-id name)
+  [{:keys [?data ?reply-fn] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id name]} ?data]
+    (swap! state update game-id game/update-name player-id name)
     (?reply-fn true)))
 
 (defmethod handle-msg :game/inc-points
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/inc-points player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/inc-points player-id)))
 
 (defmethod handle-msg :game/dec-points
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/dec-points player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/dec-points player-id)))
 
 (defmethod handle-msg :game/claim-dirty
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/claim-dirty player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/claim-dirty player-id)))
 
 (defmethod handle-msg :game/cancel-dirty
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/cancel-dirty player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/cancel-dirty player-id)))
 
 (defmethod handle-msg :game/show-hand-to
-  [{:keys [?data]}]
-  (let [{:keys [player-id-from player-id-to]} ?data]
-    (swap! state game/show-hand-to player-id-from player-id-to)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id-from player-id-to]} ?data]
+    (swap! state update game-id game/show-hand-to player-id-from player-id-to)))
 
 (defmethod handle-msg :game/deactivate
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/deactivate player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/deactivate player-id)))
 
 (defmethod handle-msg :game/activate
-  [{:keys [?data]}]
-  (let [{:keys [player-id]} ?data]
-    (swap! state game/activate player-id)))
+  [{:keys [?data] :as msg}]
+  (let [game-id (get-game-id msg)
+        {:keys [player-id]} ?data]
+    (swap! state update game-id game/activate player-id)))
 
 (defn start-event-handling!
   []
