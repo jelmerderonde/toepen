@@ -14,7 +14,7 @@
       [:div {:class "w-screen h-screen flex flex-row items-center justify-center"}
        [:div {:class "w-1/2 flex flex-col items-center justify-start"}
         [:img {:src "logo.jpg"}]
-        [:input {:class "mt-8 text-xl focus:outline-none focus:shadow-outline border-2 border-blue-400 py-2 px-4 block appearance-none leading-normal"
+        [:input {:class "mt-8 text-xl focus:outline-none focus:shadow-outline border-2 border-blue-400 text-blue-400 py-2 px-4 block appearance-none leading-normal"
                  :style {:width "22rem"}
                  :placeholder (get @state :proposed-game-typed "")}]
         [:button {:class "mt-4 text-xl text-blue-100 bg-blue-400 hover:bg-blue-600 font-bold py-2 px-8"
