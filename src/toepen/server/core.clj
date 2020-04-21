@@ -2,10 +2,10 @@
   (:require [org.httpkit.server :as http]
             [reitit.ring :as ring]
             [ring.middleware.defaults :refer [wrap-defaults]]
-            [hiccup.page :as page]
             [reitit.ring.middleware.dev]
             [toepen.server.ws :as ws]
-            [toepen.server.state :as state]))
+            [toepen.server.state :as state]
+            [toepen.server.page :as page]))
 
 (defonce server (atom nil))
 
@@ -24,47 +24,6 @@
   (when-not (nil? @event-handler)
     (@event-handler)
     (reset! event-handler nil)))
-
-(defn index
-  [req]
-  (let [csrf-token (:anti-forgery-token req)
-        html (page/html5
-               {:lang "en"}
-               [:head
-                  [:meta {:charset "utf-8"}]
-                  [:title "Toepen 4 evah!"]
-                  [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
-                          :rel "stylesheet"}]
-                  (page/include-css "style.css")]
-               [:body
-                [:div {:class "bg-blue-100"}
-                 [:input "Toepen"]]])]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body html}))
-
-(defn game
-  [req]
-  (let [csrf-token (:anti-forgery-token req)
-        game-id (get-in req [:path-params :game-id])
-        html (page/html5
-               {:lang "en"}
-               [:head
-                  [:meta {:charset "utf-8"}]
-                  [:title "Toepen 4 evah!"]
-                  [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
-                          :rel "stylesheet"}]
-                  (page/include-css "style.css")]
-               [:body
-                [:div {:id "sente-csrf-token"
-                       :data-csrf-token csrf-token}]
-                [:div {:id "game-id"
-                       :data-game-id game-id}]
-                [:div {:id "app"}]
-                (page/include-js "js/main.js")])]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body html}))
 
 (def mw-config
   {:params {:urlencoded true
@@ -94,8 +53,8 @@
     (ring/router
      [["/ws" {:get ws/get-handler
               :post ws/post-handler}]
-      ["/:game-id" game]
-      ["/" index]]
+      ["/:game-id" page/game]
+      ["/" page/index]]
      {:conflicts nil})
       ;:reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes

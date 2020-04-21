@@ -263,7 +263,7 @@
                 :discarded discarded
                 :uid uid}]]))
 
-(defn root
+(defn game
   []
   (let [uid (:uid @state)
         game (:game @state)]
