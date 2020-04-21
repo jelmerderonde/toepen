@@ -11,7 +11,8 @@
   a state update"
   [old new]
   (let [diff (data/diff old new)]
-    (-> diff first keys first)))
+    (or (-> diff first keys first)
+        (-> diff second keys first))))
 
 (defn game-client?
   "Checks if the id of the client belongs to
@@ -22,12 +23,13 @@
 ; TODO filter state so it is no longer possible to cheat
 (defn send-state
   [_ _ old-state new-state]
-  (when-let [changed (changed-game old-state new-state)]
-    (tap> (str "[" changed "] new state"))
-    (doseq [uid (->> @ws/connected
-                     :any
-                     (filter (partial game-client? changed)))]
-      (ws/send! uid [:state/new (get new-state changed)]))))
+  (when (not= old-state new-state)
+    (when-let [changed (changed-game old-state new-state)]
+      (tap> (str "[" changed "] new state"))
+      (doseq [uid (->> @ws/connected
+                       :any
+                       (filter (partial game-client? changed)))]
+        (ws/send! uid [:state/new (get new-state changed)])))))
 
 (defn start-watch!
   []
