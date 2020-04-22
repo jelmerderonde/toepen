@@ -32,11 +32,12 @@
          extra-classes ""
          card-action (fn [_ _] nil)
          stack-action (fn [_] nil)}}]
-  (let [cards (vec (c/get-cards stack order))
-        visible-for (:visible-for stack)
+  (let [visible-for (:visible-for stack)
         visible? (if (= visible-for :all)
                    true
                    (contains? visible-for uid))
+        cards (when visible? (vec (c/get-cards stack order)))
+        n (:n stack)
         base-size (case size
                     :xs "2rem"
                     :sm "4rem"
@@ -51,21 +52,21 @@
              :stack ml
              :hand 0
              :deck 0.5)
-        extra-width (* (dec (count cards)) ml)
-        extra-height (* (dec (count cards)) mt)]
+        extra-width (* (dec n) ml)
+        extra-height (* (dec n) mt)]
     [:div {:class (str "relative " extra-classes)
            :style {:width (str "calc(" base-size " + " extra-width "px)")
                    :height (str "calc(1.446931835 * " base-size " + " extra-height "px)")}
            :on-click stack-action}
-     (for [i (range (count cards))]
-       ^{:key i} [card {:card (get cards i)
-                        :index i
-                        :visible? visible?
-                        :base-size base-size
-                        :ml ml
-                        :mt mt
-                        :back-color back-color
-                        :card-action card-action}])]))
+       (for [i (range n)]
+         ^{:key i} [card {:card (when visible? (get cards i))
+                          :index i
+                          :visible? visible?
+                          :base-size base-size
+                          :ml ml
+                          :mt mt
+                          :back-color back-color
+                          :card-action card-action}])]))
 
 (defn counter
   [n]

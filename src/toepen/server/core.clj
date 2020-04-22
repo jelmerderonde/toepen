@@ -5,7 +5,8 @@
             [reitit.ring.middleware.dev]
             [toepen.server.ws :as ws]
             [toepen.server.state :as state]
-            [toepen.server.page :as page]))
+            [toepen.server.page :as page]
+            [clojure.string :as str]))
 
 (defonce server (atom nil))
 
@@ -45,7 +46,12 @@
                :content-types true
                :default-charset "utf-8"}})
 
-(merge-with merge {:a 1 :b {:c 2}} {:b {:c 3 :d 4}})
+(defn lower-case-game-id
+  [handler]
+  (fn [request]
+    (handler (if (get-in request [:params :game-id])
+               (update-in request [:params :game-id] str/lower-case)
+               request))))
 
 (defn handler
   [config]
@@ -59,7 +65,7 @@
       ;:reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes
       (ring/create-default-handler))
-    {:middleware [[wrap-defaults config]]}))
+    {:middleware [[wrap-defaults config] [lower-case-game-id]]}))
 
 (defn start-server
   [{:keys [middleware port]}]

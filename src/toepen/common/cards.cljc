@@ -33,7 +33,8 @@
   with initial cards"
   ([]
    {:n 0
-    :cards {}})
+    :cards {}
+    :visible-for :all})
   ([initial-cards]
    (add-cards (stack) initial-cards)))
 

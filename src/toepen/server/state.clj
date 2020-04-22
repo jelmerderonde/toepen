@@ -2,34 +2,38 @@
   (:require [toepen.server.ws :as ws]
             [taoensso.sente :as sente]
             [toepen.common.game :as game]
-            [clojure.data :as data]))
+            [clojure.walk :as walk]))
 
 (def state (atom {}))
-
-(defn changed-game
-  "Determines which game changed after
-  a state update"
-  [old new]
-  (let [diff (data/diff old new)]
-    (or (-> diff first keys first)
-        (-> diff second keys first))))
 
 (defn game-client?
   "Checks if the id of the client belongs to
   the game id specified"
-  [game id]
-  (= (subs id 37) game))
+  [game-id id]
+  (= (subs id 37) game-id))
 
-; TODO filter state so it is no longer possible to cheat
+(defn filter-state
+  "Filters cards information out of the state
+  so it is not possible to cheat."
+  [game-state uid]
+  (walk/postwalk
+    (fn [form] (if (and (map? form)
+                        (contains? form :visible-for)
+                        (not= (:visible-for form) :all)
+                        (not ((:visible-for form) uid)))
+                 (dissoc form :cards)
+                 form))
+    game-state))
+
 (defn send-state
   [_ _ old-state new-state]
-  (when (not= old-state new-state)
-    (when-let [changed (changed-game old-state new-state)]
-      (tap> (str "[" changed "] new state"))
+  (doseq [[game-id game-state] new-state]
+    (when (not= (get old-state game-id) game-state)
+      (tap> (str "[" game-id "] new state"))
       (doseq [uid (->> @ws/connected
                        :any
-                       (filter (partial game-client? changed)))]
-        (ws/send! uid [:state/new (get new-state changed)])))))
+                       (filter (partial game-client? game-id)))]
+        (ws/send! uid [:state/new (filter-state game-state uid)])))))
 
 (defn start-watch!
   []
@@ -64,7 +68,7 @@
 (defmethod handle-msg :state/request
   [{:keys [uid] :as msg}]
   (let [game-id (get-game-id msg)]
-    (ws/send! uid [:state/new (get @state game-id)])))
+    (ws/send! uid [:state/new (filter-state (get @state game-id) uid)])))
 
 (defmethod handle-msg :chsk/uidport-close
   [{:keys [uid] :as msg}]

@@ -4,8 +4,8 @@
 (defn new-game
   "Creates a new game state"
   []
-  {:deck (c/stack c/toep-cards)
-   :discarded (c/stack)
+  {:deck (assoc (c/stack c/toep-cards) :visible-for #{})
+   :discarded (assoc (c/stack) :visible-for #{})
    :players {}})
 
 (defn new-player
@@ -14,7 +14,7 @@
   {:id player-id
    :name "Unnamed player"
    :hand (assoc (c/stack) :visible-for #{player-id})
-   :table (assoc (c/stack) :visible-for :all)
+   :table (c/stack)
    :position position
    :points 0
    :dealer? false
