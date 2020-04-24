@@ -22,6 +22,10 @@
       (update :proposed-game-typed str (first type-queue))
       (update :type-queue rest)))
 
+(defn clean-game-name
+  [s]
+  (str/replace s #"[^A-Za-z0-9]" ""))
+
 (defn index
   []
   (let [state (r/atom {:proposed-game ""
@@ -50,7 +54,7 @@
                  :style {:width "24rem"}
                  :placeholder (get @state :proposed-game-typed "")
                  :value (get @state :game)
-                 :on-change #(swap! state assoc :game (-> % .-target .-value))
+                 :on-change #(swap! state assoc :game (-> % .-target .-value clean-game-name))
                  :on-key-down #(case (.-which %)
                                  13 (start-game)
                                  27 (swap! state assoc :game "")
