@@ -84,12 +84,12 @@
 (defn inc-points
   "Increments the points of the player."
   [game player-id]
-  (update-in game [:players player-id :points] inc))
+  (update-in game [:players player-id :points] #(if (< % 15) (inc %) %)))
 
 (defn dec-points
   "Increments the points of the player."
   [game player-id]
-  (update-in game [:players player-id :points] dec))
+  (update-in game [:players player-id :points] #(if (> % 0) (dec %) %)))
 
 (defn dirty-laundry?
   "Returns true if the player has claimed
@@ -133,13 +133,32 @@
   [game player-id]
   (assoc-in game [:players player-id :active?] true))
 
+(defn active?
+  "Checks if the player is active"
+  [game player-id]
+  (get-in game [:players player-id :active?]))
+
+(defn activate-living-players
+  "Loops over all players and sets players
+  with points below 15 to active."
+  [game]
+  (let [player-ids (player-ids game)
+        activate-player (fn [game player-id]
+                          (let [points (get-in game [:players player-id :points])]
+                            (if (< points 15)
+                              (activate game player-id)
+                              (deactivate game player-id))))]
+    (reduce activate-player game player-ids)))
+
 (defn deal-cards
   "Deal `n` cards from the deck to all
-  the players."
+  the active players."
   [game n]
   (let [player-ids (player-ids game)
         draw-cards (fn draw-cards [game player-id]
-                     (c/draw-cards game [:deck] [:players player-id :hand] n))]
+                     (if (active? game player-id)
+                       (c/draw-cards game [:deck] [:players player-id :hand] n)
+                       game))]
     (reduce draw-cards game player-ids)))
 
 (defn draw-card
@@ -188,28 +207,30 @@
       (reset-visibility player-id)
       (cancel-dirty player-id)))
 
-(defn finish-round
-  "Finishes the round by moving all (un)played
-  cards to the discarded pile."
+(defn shuffle-cards
+  "Shuffles all (un)played cards back into
+  the deck."
   [game]
   (let [player-ids (player-ids game)
         discard-cards (fn discard-cards [game player-id]
                         (-> game
                             (c/move-all-cards
                               [:players player-id :hand]
-                              [:discarded])
+                              [:deck])
                             (c/move-all-cards
                               [:players player-id :table]
-                              [:discarded])))]
+                              [:deck])))]
     (reduce discard-cards game player-ids)))
 
-(defn clean-table
-  "Sets up a next round by finishing the
-  current round and cleaning the table."
+(defn shuffle-and-deal
+  "Sets up a next round by shuffling the cards,
+  activting/deactivating players and dealing
+  4 cards to active players."
   [game]
   (-> game
-      (finish-round)
-      (c/move-all-cards [:discarded] [:deck])))
+      (shuffle-cards)
+      (activate-living-players)
+      (deal-cards 4)))
 
 (defn reset-game
   "Resets the game by resetting all the points
@@ -232,11 +253,10 @@
   (-> (new-game)
       (add-player :a)
       (add-player :b)
-      (deal-cards 4)
+      (shuffle-and-deal)
       (doto tap>)
-      (claim-dirty :a)
-      (show-hand-to :a :b)
-      (discard-hand :a)
+      (assoc-in [:players :a :points] 15)
+      (shuffle-and-deal)
       (doto tap>))
 
   nil)

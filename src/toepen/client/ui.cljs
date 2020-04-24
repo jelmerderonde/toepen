@@ -122,7 +122,7 @@
     [:div {:class "flex-1 flex flex-col flex-no-wrap items-center justify-start"}
      [:div {:class (str "flex flex-col flex-no-wrap items-center justify-between p-4 rounded-b-lg " (cond
                                                                                                       my-hand-visible? "bg-red-200"
-                                                                                                      active?          "bg-gray-200"
+                                                                                                      active?          "bg-gray-300"
                                                                                                       :else nil))
             :style {:min-width "8rem"}}
       [name-tag {:name name
@@ -186,11 +186,8 @@
      (when dealer?
        [:div {:class "flex flex-col flex-no-wrap items-center justify-start"}
         [button {:extra-classes "bg-green-400 text-green-100 hover:bg-green-600 w-48"
-                 :on-click (fn [_] (ws/send! [:game/deal]))
-                 :text "Deel 4 kaarten"}]
-        [button {:extra-classes "bg-blue-400 text-blue-100 hover:bg-blue-600 w-48"
-                 :on-click (fn [_] (ws/send! [:game/shuffle]))
-                 :text "Schud kaarten"}]
+                 :on-click (fn [_] (ws/send! [:game/shuffle-and-deal]))
+                 :text "Schud en deel"}]
         [button {:extra-classes "bg-purple-400 text-purple-100 hover:bg-purple-600 w-48"
                  :on-click (fn [_] (when (js/confirm "Reset the game? All points will be reset!")
                                      (ws/send! [:game/reset])))
@@ -223,7 +220,7 @@
              :size :base
              :extra-classes "mb-3"}]
      [:div {:class (str "flex flex-row flex-no-wrap items-center justify-center p-4 rounded-t-lg " (cond dirty? "bg-red-200"
-                                                                                                         active? "bg-gray-200"
+                                                                                                         active? "bg-gray-300"
                                                                                                          :else nil))
             :style {:min-width "50%"}}
       [stack {:stack hand

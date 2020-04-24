@@ -74,8 +74,7 @@
   [{:keys [uid] :as msg}]
   (let [game-id (get-game-id msg)]
     (tap> (str "[" game-id "] user disconnected"))
-    (if (= (count (:players (get @state game-id)))
-           1)
+    (if (= 1 (count (:players (get @state game-id))))
       (do
         (tap> (str "[" game-id "] all users disconnected, clearing game"))
         (swap! state dissoc game-id))
@@ -86,15 +85,10 @@
   (let [game-id (get-game-id msg)]
     (swap! state update game-id game/reset-game)))
 
-(defmethod handle-msg :game/deal
+(defmethod handle-msg :game/shuffle-and-deal
   [msg]
   (let [game-id (get-game-id msg)]
-    (swap! state update game-id game/deal-cards 4)))
-
-(defmethod handle-msg :game/shuffle
-  [msg]
-  (let [game-id (get-game-id msg)]
-    (swap! state update game-id game/clean-table)))
+    (swap! state update game-id game/shuffle-and-deal)))
 
 (defmethod handle-msg :game/play-card
   [{:keys [?data] :as msg}]
