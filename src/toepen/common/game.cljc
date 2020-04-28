@@ -238,17 +238,16 @@
   and setting up a next round."
   [game]
   (let [player-ids (player-ids game)
-        reset-players (fn reset-players [game player-id]
-                        (-> game
-                            (update-in [:players player-id :hand] c/remove-all-cards)
-                            (update-in [:players player-id :table] c/remove-all-cards)
-                            (assoc-in [:players player-id :points] 0)
-                            (assoc-in [:players player-id :hand :visible-for] #{player-id})
-                            (assoc-in [:players player-id :dirty?] false)))]
-    (-> (reduce reset-players game player-ids)
-        (assoc-in [:deck] (c/stack c/toep-cards))
-        (assoc-in [:discarded] (c/stack)))))
-
+        reset-players (fn reset-players [players player-id]
+                        (-> players
+                            (update-in [player-id :hand] c/remove-all-cards)
+                            (update-in [player-id :table] c/remove-all-cards)
+                            (assoc-in [player-id :points] 0)
+                            (assoc-in [player-id :hand :visible-for] #{player-id})
+                            (assoc-in [player-id :dirty?] false)
+                            (assoc-in [player-id :active?] true)))
+        players (reduce reset-players (:players game) player-ids)]
+    (assoc (new-game) :players players)))
 
 (comment
   (-> (new-game)
