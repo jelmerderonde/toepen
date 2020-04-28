@@ -219,7 +219,8 @@
                               [:deck])
                             (c/move-all-cards
                               [:players player-id :table]
-                              [:deck])))]
+                              [:deck])))
+        game (c/move-all-cards game [:discarded] [:deck])]
     (reduce discard-cards game player-ids)))
 
 (defn shuffle-and-deal
