@@ -9,6 +9,9 @@
                [:head
                   [:meta {:charset "utf-8"}]
                   [:title "Toepen 4 evah!"]
+                  [:link {:href "/favicon.ico"
+                          :rel "icon"
+                          :type "image/x-icon"}]
                   [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
                           :rel "stylesheet"}]
                   (page/include-css "style.css")]
@@ -29,6 +32,9 @@
                [:head
                   [:meta {:charset "utf-8"}]
                   [:title "Toepen 4 evah!"]
+                  [:link {:href "/favicon.ico"
+                          :rel "icon"
+                          :type "image/x-icon"}]
                   [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
                           :rel "stylesheet"}]
                   (page/include-css "style.css")]
