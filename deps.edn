@@ -4,10 +4,10 @@
         com.taoensso/sente                 {:mvn/version "1.15.0"}
         http-kit                           {:mvn/version "2.3.0"}
 
-        metosin/reitit-core                {:mvn/version "0.4.2"}
-        metosin/reitit-ring                {:mvn/version "0.4.2"}
-        metosin/reitit-middleware          {:mvn/version "0.4.2"}
-        metosin/reitit-frontend            {:mvn/version "0.4.2"}
+        metosin/reitit-core                {:mvn/version "0.5.5"}
+        metosin/reitit-ring                {:mvn/version "0.5.5"}
+        metosin/reitit-middleware          {:mvn/version "0.5.5"}
+        metosin/reitit-frontend            {:mvn/version "0.5.5"}
 
         ring/ring-defaults                 {:mvn/version "0.3.2"}
 
