@@ -50,3 +50,8 @@
      :headers {"Content-Type" "text/html"}
      :body html}))
 
+(defn ping
+  [_]
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   :body "pong"})

@@ -5,8 +5,20 @@
             [toepen.client.state :as state]
             [toepen.common.haiku-names :refer [haiku]]
             [clojure.string :as str]
-            [cljs.core.async :refer [<! timeout]])
+            [cljs.core.async :refer [<! timeout]]
+            [taoensso.encore :refer [ajax-lite]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop]]))
+
+(defn start-pings
+  []
+  (go-loop []
+    (let [pause (+ 180000 (rand-int 120000))]
+      (<! (timeout pause))
+      (js/console.log "ping")
+      (ajax-lite "/ping" {:method :get
+                          :resp-type :text}
+                         (fn [] (js/console.log "pong")))
+      (recur))))
 
 (defn new-name
   [state]
@@ -62,6 +74,8 @@
         [:button {:class "mt-4 text-xl text-blue-100 bg-blue-400 hover:bg-blue-600 font-bold py-2 px-8"
                   :on-click start-game}
          "Toep!"]]])))
+
+(start-pings)
 
 (let [el (js/document.getElementById "app")
       data (.getAttribute el "data")]

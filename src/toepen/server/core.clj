@@ -59,6 +59,7 @@
     (ring/router
      [["/ws" {:get ws/get-handler
               :post ws/post-handler}]
+      ["/ping" page/ping]
       ["/:game-id" page/game]
       ["/" page/index]]
      {:conflicts nil})
