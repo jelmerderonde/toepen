@@ -12,7 +12,7 @@
   "Creates a new empty player state"
   [player-id position]
   {:id player-id
-   :name "Unnamed player"
+   :name "De Pos"
    :hand (assoc (c/stack) :visible-for #{player-id})
    :table (c/stack)
    :position position
