@@ -6,7 +6,8 @@
             [toepen.server.ws :as ws]
             [toepen.server.state :as state]
             [toepen.server.page :as page]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:gen-class))
 
 (defonce server (atom nil))
 
@@ -75,7 +76,8 @@
   (state/stop-watch!)
   (reset! server (http/run-server (handler middleware) {:port port}))
   (state/start-watch!)
-  (reset! event-handler (state/start-event-handling!)))
+  (reset! event-handler (state/start-event-handling!))
+  (println "Server started."))
 
 
 (comment

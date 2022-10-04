@@ -1,1 +1,0 @@
-web: java -cp toepen.jar clojure.main -m toepen.server.core
