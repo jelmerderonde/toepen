@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-npm install
-clojure -A:shadow-cljs release app
-clojure -A:depstar -m hf.depstar.uberjar toepen.jar
