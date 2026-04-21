@@ -3,8 +3,10 @@
             [reitit.ring :as ring]
             [ring.middleware.defaults :refer [wrap-defaults]]
             [reitit.ring.middleware.dev]
+            [taoensso.timbre :as log]
             [toepen.server.ws :as ws]
             [toepen.server.state :as state]
+            [toepen.server.logging :as logging]
             [toepen.server.page :as page]
             [clojure.string :as str])
   (:gen-class))
@@ -26,6 +28,14 @@
   (when-not (nil? @event-handler)
     (@event-handler)
     (reset! event-handler nil)))
+
+(defonce metrics-reporter (atom nil))
+
+(defn stop-metrics-reporter
+  []
+  (when-let [stop-fn @metrics-reporter]
+    (stop-fn)
+    (reset! metrics-reporter nil)))
 
 (def mw-config
   {:params {:urlencoded true
@@ -67,17 +77,26 @@
       ;:reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs})
     (ring/routes
       (ring/create-default-handler))
-    {:middleware [[wrap-defaults config] [lower-case-game-id]]}))
+    {:middleware [[logging/wrap-request-logging]
+                  [wrap-defaults config]
+                  [lower-case-game-id]]}))
 
 (defn start-server
   [{:keys [middleware port]}]
+  (logging/configure!)
   (stop-server)
   (stop-event-handler)
+  (stop-metrics-reporter)
   (state/stop-watch!)
   (reset! server (http/run-server (handler middleware) {:port port}))
   (state/start-watch!)
   (reset! event-handler (state/start-event-handling!))
-  (println "Server started."))
+  (reset! metrics-reporter (logging/start-metrics-reporter!))
+  (log/info {:event :server-started
+             :port port
+             :java-version (System/getProperty "java.version")
+             :max-heap-mb (quot (.maxMemory (Runtime/getRuntime)) (* 1024 1024))}
+            "Server started."))
 
 
 (comment
@@ -98,5 +117,5 @@
 
 (defn -main
   [& _]
-  (println "Starting toepen...")
+  (log/info "Starting toepen...")
   (start-server prod-config))
