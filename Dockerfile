@@ -8,7 +8,7 @@ RUN mkdir /app
 WORKDIR /app
 ADD deps.edn deps.edn
 RUN clj -Sdeps '{:mvn/local-repo "./.m2/repository"}' -e "(prn \"Downloading deps\")"
-COPY --from=npm node_modules ./
+COPY --from=npm /node_modules ./node_modules/
 RUN clojure -P -A:build:shadow-cljs
 COPY . .
 RUN clojure -A:shadow-cljs release app
