@@ -44,25 +44,44 @@
     (log/merge-config! {:min-level level})))
 
 (defn wrap-request-logging
-  "Ring middleware that emits one INFO log per request with method/uri/status/duration."
+  "Ring middleware that emits one INFO log per request with method/uri/status/
+   duration plus identifying headers (user-agent, referer, host, client IPs) so
+   we can attribute traffic."
   [handler]
   (fn [request]
     (let [t0 (System/nanoTime)
           response (handler request)
-          duration-ms (quot (- (System/nanoTime) t0) 1000000)]
+          duration-ms (quot (- (System/nanoTime) t0) 1000000)
+          headers (:headers request)]
       (log/info {:event :request
                  :method (:request-method request)
                  :uri (:uri request)
                  :status (:status response)
                  :duration-ms duration-ms
-                 :remote-addr (:remote-addr request)})
+                 :remote-addr (:remote-addr request)
+                 :fly-client-ip (get headers "fly-client-ip")
+                 :x-forwarded-for (get headers "x-forwarded-for")
+                 :host (get headers "host")
+                 :user-agent (get headers "user-agent")
+                 :referer (get headers "referer")})
       response)))
 
+(defonce ^:private reporter (atom nil))
+
+(defn stop-metrics-reporter!
+  "Stops the running metrics reporter, if any. No-op otherwise."
+  []
+  (when-let [stop-fn @reporter]
+    (stop-fn)
+    (reset! reporter nil)))
+
 (defn start-metrics-reporter!
-  "Starts a daemon thread that logs merged JVM + app metrics on an interval.
-   Returns a no-arg stop fn."
+  "Starts a daemon thread that logs merged JVM + app metrics every `interval-ms`
+   (default 30s). Stops any previously running reporter first so the call is
+   idempotent."
   ([] (start-metrics-reporter! 30000))
   ([interval-ms]
+   (stop-metrics-reporter!)
    (let [stop? (volatile! false)
          t (Thread.
              ^Runnable
@@ -83,6 +102,7 @@
              "toepen-metrics-reporter")]
      (.setDaemon t true)
      (.start t)
-     (fn stop-reporter []
-       (vreset! stop? true)
-       (.interrupt t)))))
+     (reset! reporter
+             (fn []
+               (vreset! stop? true)
+               (.interrupt t))))))

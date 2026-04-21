@@ -29,14 +29,6 @@
     (@event-handler)
     (reset! event-handler nil)))
 
-(defonce metrics-reporter (atom nil))
-
-(defn stop-metrics-reporter
-  []
-  (when-let [stop-fn @metrics-reporter]
-    (stop-fn)
-    (reset! metrics-reporter nil)))
-
 (def mw-config
   {:params {:urlencoded true
             :multipart true
@@ -86,12 +78,12 @@
   (logging/configure!)
   (stop-server)
   (stop-event-handler)
-  (stop-metrics-reporter)
+  (logging/stop-metrics-reporter!)
   (state/stop-watch!)
   (reset! server (http/run-server (handler middleware) {:port port}))
   (state/start-watch!)
   (reset! event-handler (state/start-event-handling!))
-  (reset! metrics-reporter (logging/start-metrics-reporter!))
+  (logging/start-metrics-reporter!)
   (log/info {:event :server-started
              :port port
              :java-version (System/getProperty "java.version")
