@@ -1,6 +1,6 @@
 {:paths ["resources" "src"]
 
- :deps {org.clojure/clojure                {:mvn/version "1.12.5"}
+ :deps {org.clojure/clojure                {:mvn/version "1.12.4"}
         com.taoensso/sente                 {:mvn/version "1.15.0"}
         com.taoensso/timbre                {:mvn/version "6.8.0"}
         http-kit/http-kit                  {:mvn/version "2.3.0"}
