@@ -1,6 +1,7 @@
 (ns toepen.server.state
   (:require [toepen.server.ws :as ws]
             [taoensso.sente :as sente]
+            [taoensso.timbre :as log]
             [toepen.common.game :as game]
             [clojure.walk :as walk]))
 
@@ -29,11 +30,16 @@
   [_ _ old-state new-state]
   (doseq [[game-id game-state] new-state]
     (when (not= (get old-state game-id) game-state)
-      (tap> (str "[" game-id "] new state"))
-      (doseq [uid (->> @ws/connected
-                       :any
-                       (filter (partial game-client? game-id)))]
-        (ws/send! uid [:state/new (filter-state game-state uid)])))))
+      (let [t0 (System/nanoTime)
+            clients (->> @ws/connected
+                         :any
+                         (filter (partial game-client? game-id)))]
+        (doseq [uid clients]
+          (ws/send! uid [:state/new (filter-state game-state uid)]))
+        (log/debug {:event :broadcast
+                    :game-id game-id
+                    :clients (count clients)
+                    :duration-ms (quot (- (System/nanoTime) t0) 1000000)})))))
 
 (defn start-watch!
   []
@@ -48,7 +54,7 @@
 (defmethod handle-msg :default
   [{:keys [id] :as msg}]
   (when (not= id :chsk/ws-ping)
-    (tap> (dissoc msg :ring-req))))
+    (log/warn {:event :unhandled-msg :id id} (pr-str (dissoc msg :ring-req)))))
 
 (defn get-game-id
   "Extracts the game id from the msg"
@@ -58,12 +64,23 @@
 ; handle the arrival of a new client
 (defmethod handle-msg :chsk/uidport-open
   [{:keys [uid] :as msg}]
-  (let [game-id (get-game-id msg)]
-    (tap> (str "[" game-id "] user connected"))
-    (if (contains? @state game-id)
-      (swap! state update game-id game/add-player uid)
-      (swap! state assoc game-id (-> (game/new-game)
-                                     (game/add-player uid))))))
+  (let [game-id (get-game-id msg)
+        existing? (contains? @state game-id)]
+    (if existing?
+      (do
+        (swap! state update game-id game/add-player uid)
+        (log/info {:event :player-joined
+                   :game-id game-id
+                   :uid uid
+                   :players (count (:players (get @state game-id)))
+                   :active-games (count @state)}))
+      (do
+        (swap! state assoc game-id (-> (game/new-game)
+                                       (game/add-player uid)))
+        (log/info {:event :game-created
+                   :game-id game-id
+                   :uid uid
+                   :active-games (count @state)})))))
 
 (defmethod handle-msg :state/request
   [{:keys [uid] :as msg}]
@@ -72,13 +89,22 @@
 
 (defmethod handle-msg :chsk/uidport-close
   [{:keys [uid] :as msg}]
-  (let [game-id (get-game-id msg)]
-    (tap> (str "[" game-id "] user disconnected"))
-    (if (= 1 (count (:players (get @state game-id))))
+  (let [game-id (get-game-id msg)
+        last-player? (= 1 (count (:players (get @state game-id))))]
+    (if last-player?
       (do
-        (tap> (str "[" game-id "] all users disconnected, clearing game"))
-        (swap! state dissoc game-id))
-      (swap! state update game-id game/remove-player uid))))
+        (swap! state dissoc game-id)
+        (log/info {:event :game-destroyed
+                   :game-id game-id
+                   :uid uid
+                   :active-games (count @state)}))
+      (do
+        (swap! state update game-id game/remove-player uid)
+        (log/info {:event :player-disconnected
+                   :game-id game-id
+                   :uid uid
+                   :players (count (:players (get @state game-id)))
+                   :active-games (count @state)})))))
 
 (defmethod handle-msg :game/reset
   [msg]

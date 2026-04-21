@@ -18,5 +18,10 @@ FROM gcr.io/distroless/java17-debian11
 COPY --from=java /app/target/toepen.jar /toepen.jar
 COPY HealthCheck.java .
 EXPOSE 8080
-CMD ["toepen.jar"]
+CMD ["-XX:MaxRAMPercentage=75.0", \
+      "-XX:+HeapDumpOnOutOfMemoryError", \
+      "-XX:HeapDumpPath=/tmp/heapdump.hprof", \
+      "-XX:+ExitOnOutOfMemoryError", \
+      "-Xlog:gc*:file=/tmp/gc.log:time,level,tags:filecount=5,filesize=10M", \
+      "toepen.jar"]
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=2 CMD ["java", "HealthCheck.java", "||", "exit", "1"]
