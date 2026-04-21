@@ -1,18 +1,24 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:latest AS npm
 COPY package.json package.json
 COPY package-lock.json package-lock.json
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 FROM clojure:temurin-17-tools-deps-focal as java
 RUN mkdir /app
 WORKDIR /app
-ADD deps.edn deps.edn
-RUN clj -Sdeps '{:mvn/local-repo "./.m2/repository"}' -e "(prn \"Downloading deps\")"
+COPY deps.edn deps.edn
+RUN --mount=type=cache,target=/root/.m2 \
+    clojure -P -A:build:shadow-cljs
 COPY --from=npm /node_modules ./node_modules/
-RUN clojure -P -A:build:shadow-cljs
 COPY . .
-RUN clojure -A:shadow-cljs release app
-RUN clojure -T:build uberjar
+RUN --mount=type=cache,target=/root/.m2 \
+    --mount=type=cache,target=/app/.shadow-cljs \
+    clojure -A:shadow-cljs release app
+RUN --mount=type=cache,target=/root/.m2 \
+    clojure -T:build uberjar
 
 FROM gcr.io/distroless/java17-debian11
 COPY --from=java /app/target/toepen.jar /toepen.jar
