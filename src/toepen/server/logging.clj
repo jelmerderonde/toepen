@@ -7,7 +7,7 @@
   (:import (java.lang.management ManagementFactory
                                  GarbageCollectorMXBean)))
 
-(defn- ^long bytes->mb [^long b]
+(defn- bytes->mb ^long [^long b]
   (quot b (* 1024 1024)))
 
 (defn jvm-metrics
