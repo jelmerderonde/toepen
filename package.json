@@ -4,10 +4,10 @@
   "description": "Awesome card game Toepen",
   "main": "index.js",
   "dependencies": {
-    "react": "^16.13.0",
-    "react-dom": "^16.13.0"
+    "process": "^0.11.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

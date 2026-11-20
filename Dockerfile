@@ -3,20 +3,21 @@ COPY package.json package.json
 COPY package-lock.json package-lock.json
 RUN npm install
 
-FROM clojure:temurin-17-tools-deps-focal as java
+FROM clojure:temurin-22-tools-deps-jammy as java
 RUN mkdir /app
 WORKDIR /app
 ADD deps.edn deps.edn
 RUN clj -Sdeps '{:mvn/local-repo "./.m2/repository"}' -e "(prn \"Downloading deps\")"
-COPY --from=npm node_modules ./
 RUN clojure -P -A:build:shadow-cljs
 COPY . .
+COPY --from=npm node_modules node_modules
 RUN clojure -A:shadow-cljs release app
 RUN clojure -T:build uberjar
+RUN javac HealthCheck.java
 
-FROM gcr.io/distroless/java17-debian11
+FROM gcr.io/distroless/java21-debian12:nonroot
 COPY --from=java /app/target/toepen.jar /toepen.jar
-COPY HealthCheck.java .
+COPY --from=java /app/HealthCheck.class /HealthCheck.class
 EXPOSE 8080
-CMD ["toepen.jar"]
-HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=2 CMD ["java", "HealthCheck.java", "||", "exit", "1"]
+CMD ["-Xmx180m", "-jar", "/toepen.jar"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=2 CMD ["java", "HealthCheck", "||", "exit", "1"]

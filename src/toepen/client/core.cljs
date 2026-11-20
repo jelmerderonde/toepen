@@ -1,12 +1,12 @@
 (ns toepen.client.core
-  (:require [reagent.dom :as rdom]
+  (:require [reagent.dom.client :as rdomc]
             [reagent.core :as r]
             [toepen.client.ui :as ui]
             [toepen.client.state :as state]
             [toepen.common.haiku-names :refer [haiku]]
             [clojure.string :as str]
             [cljs.core.async :refer [<! timeout]]
-            [taoensso.encore :refer [ajax-lite]])
+            [taoensso.encore :refer [ajax-call]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop]]))
 
 (defn start-pings
@@ -15,7 +15,7 @@
     (let [pause (+ 180000 (rand-int 120000))]
       (<! (timeout pause))
       (js/console.log "ping")
-      (ajax-lite "/ping" {:method :get
+      (ajax-call "/ping" {:method :get
                           :resp-type :text}
                          (fn [] (js/console.log "pong")))
       (recur))))
@@ -62,6 +62,7 @@
        [:div {:class "w-1/2 flex flex-col items-center justify-start"}
         [:img {:src "logo.jpg"}]
         [:input {:id "game-input"
+                 :auto-focus true
                  :class "mt-8 text-xl focus:outline-none focus:shadow-outline border-2 border-blue-400 text-blue-400 py-2 px-4 block appearance-none leading-normal"
                  :style {:width "24rem"}
                  :placeholder (get @state :proposed-game-typed "")
@@ -89,7 +90,6 @@
 (let [el (js/document.getElementById "app")
       data (.getAttribute el "data")]
   (case data
-    "index" (do (rdom/render [index] el)
-                (.focus (js/document.getElementById "game-input")))
-    "game" (do (rdom/render [ui/game] el)
+    "index" (rdomc/render (rdomc/create-root el) [index])
+    "game" (do (rdomc/render (rdomc/create-root el) [ui/game])
                (state/refresh-state))))
