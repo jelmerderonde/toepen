@@ -10,13 +10,14 @@ public class HealthCheck {
 
     var client = HttpClient.newHttpClient();
     var request = HttpRequest.newBuilder()
-        .uri(URI.create("http://localhost:8080/"))
-        .header("accept", "application/json")
+        .uri(URI.create("http://localhost:8080/ping"))
+        // production redirects plain HTTP unless the proxy header says HTTPS
+        .header("X-Forwarded-Proto", "https")
         .build();
 
     var response = client.send(request, BodyHandlers.ofString());
 
-    if (response.statusCode() != 200 || !response.body().contains("{")) {
+    if (response.statusCode() != 200 || !response.body().contains("pong")) {
       throw new RuntimeException("Healthcheck failed");
     }
   }

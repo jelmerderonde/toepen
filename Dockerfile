@@ -13,11 +13,11 @@ COPY . .
 COPY --from=npm node_modules node_modules
 RUN clojure -A:shadow-cljs release app
 RUN clojure -T:build uberjar
-RUN javac HealthCheck.java
+RUN javac --release 21 HealthCheck.java
 
 FROM gcr.io/distroless/java21-debian12:nonroot
 COPY --from=java /app/target/toepen.jar /toepen.jar
 COPY --from=java /app/HealthCheck.class /HealthCheck.class
 EXPOSE 8080
 CMD ["-Xmx180m", "-jar", "/toepen.jar"]
-HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=2 CMD ["java", "HealthCheck", "||", "exit", "1"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=2 CMD ["java", "-cp", "/", "HealthCheck"]
